@@ -133,61 +133,36 @@ if st.session_state.game_active and not st.session_state.game_over:
         sorted_counts = sorted(counts.values(), reverse=True)
         
         # STRICT FULL HOUSE CHECK
-        # len 2 means two different numbers (e.g., 3 of one, 2 of another)
         if len(sorted_counts) == 2:
             if sorted_counts[0] >= 3 and sorted_counts[1] >= 2:
                 opts.append("Full House")
-        # len 1 means 5-of-a-kind (The Perfect Full House)
         elif len(sorted_counts) == 1 and sorted_counts[0] == 5:
             opts.append("Full House")
             
-        # STRAIGHTS: Exact match required
+        # STRAIGHTS
         if dice == [1, 2, 3, 4, 5]: 
             opts.append("Low Straight")
         if dice == [2, 3, 4, 5, 6]: 
             opts.append("High Straight")
             
-        # 5 OF A KIND: All 5 dice must be the same
+        # 5 OF A KIND
         if len(sorted_counts) == 1 and sorted_counts[0] == 5:
             opts.append("5 of a Kind")
         
-        # Filter out what this specific player has already used in previous turns
         return [o for o in opts if o not in st.session_state.used_categories[player]]
 
+    # --- UI DISPLAY ---
     ca, cb = st.columns(2)
     with ca:
         st.markdown(f"### ✨ Trick A ({len(tA_vals)}/5): `{tA_vals}`")
         options_a = get_opts(tA_vals, current_p)
-        # Dropdown only appears if 5 dice are selected
         sel_a = st.selectbox("Assign Trick A to:", options_a, key="sA") if len(tA_vals) == 5 else None
         
     with cb:
         st.markdown(f"### ✨ Trick B ({len(tB_vals)}/5): `{tB_vals}`")
         options_b = get_opts(tB_vals, current_p)
-        # Prevent selecting the same category for both Trick A and B in the same turn
         if sel_a and sel_a in options_b:
             options_b.remove(sel_a)
-        sel_b = st.selectbox("Assign Trick B to:", options_b, key="sB") if len(tB_vals) == 5 else None
-        
-        # STRICT FULL HOUSE CHECK: Must be 3 of one, 2 of another (or 5 of a kind)
-        if (3 in val_counts and 2 in val_counts) or 5 in val_counts:
-            opts.append("Full House")
-            
-        if dice == [1, 2, 3, 4, 5]: opts.append("Low Straight")
-        if dice == [2, 3, 4, 5, 6]: opts.append("High Straight")
-        if 5 in val_counts and len(dice) == 5: opts.append("5 of a Kind")
-        
-        return [o for o in opts if o not in st.session_state.used_categories[player]]
-
-    ca, cb = st.columns(2)
-    with ca:
-        st.markdown(f"### ✨ Trick A ({len(tA_vals)}/5): `{tA_vals}`")
-        options_a = get_opts(tA_vals, current_p)
-        sel_a = st.selectbox("Assign Trick A to:", options_a, key="sA") if len(tA_vals) == 5 else None
-    with cb:
-        st.markdown(f"### ✨ Trick B ({len(tB_vals)}/5): `{tB_vals}`")
-        options_b = get_opts(tB_vals, current_p)
-        if sel_a and sel_a in options_b: options_b.remove(sel_a)
         sel_b = st.selectbox("Assign Trick B to:", options_b, key="sB") if len(tB_vals) == 5 else None
 
     # TURN ACTIONS
