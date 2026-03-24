@@ -22,10 +22,8 @@ stats = load_data()
 # --- Initialize Session State ---
 if 'game_active' not in st.session_state:
     st.session_state.game_active = False
-if 'num_grid' not in st.session_state:
-    st.session_state.num_grid = pd.DataFrame()
-if 'trick_grid' not in st.session_state:
-    st.session_state.trick_grid = pd.DataFrame()
+if 'scores' not in st.session_state:
+    st.session_state.scores = {} # Dictionary to hold individual row DataFrames
 if 'players' not in st.session_state:
     st.session_state.players = []
 
@@ -58,65 +56,85 @@ if not st.session_state.game_active:
         selected = st.multiselect("Select Players", list(stats.keys()), max_selections=6)
         if st.button("🚀 Start Game") and selected:
             st.session_state.players = selected
-            num_rows = ["1s", "2s", "3s", "4s", "5s", "6s", "Full House"]
-            st.session_state.num_grid = pd.DataFrame(0, index=num_rows, columns=selected)
-            trick_rows = ["Low Straight", "High Straight", "5 of a Kind"]
-            st.session_state.trick_grid = pd.DataFrame(False, index=trick_rows, columns=selected)
+            # Initialize row-specific grids
+            st.session_state.scores = {
+                "1s": pd.DataFrame(0, index=["1s"], columns=selected),
+                "2s": pd.DataFrame(0, index=["2s"], columns=selected),
+                "3s": pd.DataFrame(0, index=["3s"], columns=selected),
+                "4s": pd.DataFrame(0, index=["4s"], columns=selected),
+                "5s": pd.DataFrame(0, index=["5s"], columns=selected),
+                "6s": pd.DataFrame(0, index=["6s"], columns=selected),
+                "Full House": pd.DataFrame(0, index=["Full House"], columns=selected),
+                "Tricks": pd.DataFrame(False, index=["Low Straight", "High Straight", "5 of a Kind"], columns=selected)
+            }
             st.session_state.game_active = True
             st.session_state.game_finished = False
             st.rerun()
 
 else:
     st.subheader("📝 Live Scorecard")
-
-    # --- Table 1: Numbers with Dropdowns ---
-    st.write("### Number Categories")
-    num_options = [0] + [i*j for i in range(1,7) for j in range(1,7)] + list(range(5, 31))
-    num_options = sorted(list(set(num_options)))
     
-    num_config = {p: st.column_config.SelectboxColumn(p, options=num_options) for p in st.session_state.players}
-    edited_nums = st.data_editor(st.session_state.num_grid, column_config=num_config, use_container_width=True, key="num_editor")
+    # Helper function to render a row with specific multiples
+    def render_row(label, multiplier, players):
+        options = [i * multiplier for i in range(6)]
+        config = {p: st.column_config.SelectboxColumn(p, options=options) for p in players}
+        st.session_state.scores[label] = st.data_editor(
+            st.session_state.scores[label], 
+            column_config=config, 
+            use_container_width=True, 
+            key=f"editor_{label}"
+        )
 
-    # --- Table 2: Tricks with Checkboxes ---
-    st.write("### Required Tricks")
+    # Render Multiples Rows
+    render_row("1s", 1, st.session_state.players)
+    render_row("2s", 2, st.session_state.players)
+    render_row("3s", 3, st.session_state.players)
+    render_row("4s", 4, st.session_state.players)
+    render_row("5s", 5, st.session_state.players)
+    render_row("6s", 6, st.session_state.players)
+
+    # Full House (Numeric Input)
+    st.write("**Full House**")
+    st.session_state.scores["Full House"] = st.data_editor(
+        st.session_state.scores["Full House"], use_container_width=True, key="editor_fh"
+    )
+
+    # Tricks (Checkboxes)
+    st.write("**Required Tricks**")
     trick_config = {p: st.column_config.CheckboxColumn(p) for p in st.session_state.players}
-    edited_tricks = st.data_editor(st.session_state.trick_grid, column_config=trick_config, use_container_width=True, key="trick_editor")
+    st.session_state.scores["Tricks"] = st.data_editor(
+        st.session_state.scores["Tricks"], column_config=trick_config, use_container_width=True, key="editor_tricks"
+    )
 
-    # --- Live Totals (Numeric only) ---
-    live_totals = edited_nums.sum()
+    # --- Calculation ---
+    current_totals = {p: 0 for p in st.session_state.players}
+    for label in ["1s", "2s", "3s", "4s", "5s", "6s", "Full House"]:
+        for p in st.session_state.players:
+            current_totals[p] += int(st.session_state.scores[label][p].iloc[0])
+
     st.divider()
     st.write("### Current Totals (Pre-Penalty)")
     cols = st.columns(len(st.session_state.players))
     for i, player in enumerate(st.session_state.players):
-        cols[i].metric(player, int(live_totals[player]))
+        cols[i].metric(player, current_totals[player])
 
     if not st.session_state.get('game_finished'):
         if st.button("🏁 Finish & Save Game", type="primary", use_container_width=True):
             final_scores = {}
             for p in st.session_state.players:
-                total = int(edited_nums[p].sum())
-                
-                # ADD penalties if box is NOT checked
-                if not edited_tricks.at["Low Straight", p]:
-                    total += 15
-                if not edited_tricks.at["High Straight", p]:
-                    total += 20
-                if not edited_tricks.at["5 of a Kind", p]:
-                    total += 30
-                
-                final_scores[p] = total
+                score = current_totals[p]
+                # ADD penalties if unchecked
+                if not st.session_state.scores["Tricks"].at["Low Straight", p]: score += 15
+                if not st.session_state.scores["Tricks"].at["High Straight", p]: score += 20
+                if not st.session_state.scores["Tricks"].at["5 of a Kind", p]: score += 30
+                final_scores[p] = score
 
-            # Note: In most games with positive penalties, the LOWEST score wins. 
-            # If you want the HIGHEST score to win despite penalties being added, 
-            # keep the line below. Otherwise, change max() to min().
             winner = max(final_scores, key=final_scores.get)
             st.balloons()
-            
             for p in st.session_state.players:
                 stats[p]["scores"].append(final_scores[p])
                 if p == winner: stats[p]["wins"] += 1
             save_data(stats)
-            
             st.session_state.game_finished = True
             st.session_state.final_results = final_scores
             st.rerun()
@@ -128,5 +146,4 @@ else:
             
         if st.button("🔄 Start New Game", use_container_width=True):
             st.session_state.game_active = False
-            st.session_state.game_finished = False
             st.rerun()
