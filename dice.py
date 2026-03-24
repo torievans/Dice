@@ -66,12 +66,10 @@ if not st.session_state.game_active:
         selected = st.multiselect("Who is playing?", list(stats.keys()), max_selections=6)
         if st.button("🚀 Start Game") and selected:
             st.session_state.players = selected
-            # Numeric Categories
-            nums = ["1s", "2s", "3s", "4s", "5s", "6s", "Full House"]
-            st.session_state.score_grid = pd.DataFrame(0, index=nums, columns=selected)
-            # Boolean Tricks (Checkboxes)
-            tricks = ["Low Straight", "High Straight", "5 of a Kind"]
-            st.session_state.trick_grid = pd.DataFrame(False, index=tricks, columns=selected)
+            # Unified Categories
+            rows = ["1s", "2s", "3s", "4s", "5s", "6s", "Full House", "Low Straight", "High Straight", "5 of a Kind"]
+            # We initialize with 0. For the boolean rows, 0 will represent 'False'
+            st.session_state.score_grid = pd.DataFrame(0, index=rows, columns=selected)
             st.session_state.game_active = True
             st.session_state.game_finished = False
             st.rerun()
@@ -79,44 +77,63 @@ if not st.session_state.game_active:
 else:
     st.subheader("📝 Live Scorecard")
     
-    # Section 1: Points
-    st.markdown("### 🔢 Numeric Scores")
+    # Configure the editor so specific rows act as checkboxes
+    # Note: Streamlit's data_editor treats column types globally, 
+    # so we'll allow numeric input for all, but players treat 
+    # the last 3 as 1 (Achieved) or 0 (Missed) for clarity, 
+    # or we simply use the numeric input and validate on finish.
+    
     edited_scores = st.data_editor(st.session_state.score_grid, use_container_width=True)
     
-    # Section 2: Required Tricks (Checkboxes)
-    st.markdown("### ✨ Required Tricks")
-    st.caption("Check the box if achieved. Unchecked boxes incur penalties.")
-    edited_tricks = st.data_editor(st.session_state.trick_grid, use_container_width=True)
+    # Live Total (No penalties yet)
+    live_totals = edited_scores.loc["1s":"Full House"].sum()
     
-    # Calculation Logic
-    final_totals = {}
-    for player in st.session_state.players:
-        p_score = edited_scores[player].sum()
-        # Penalties
-        penalty = 0
-        if not edited_tricks.at["Low Straight", player]: penalty -= 15
-        if not edited_tricks.at["High Straight", player]: penalty -= 20
-        if not edited_tricks.at["5 of a Kind", player]: penalty -= 30
-        
-        final_totals[player] = p_score + penalty
-
     st.divider()
+    st.write("### Current Running Total (Excluding Penalties)")
     cols = st.columns(len(st.session_state.players))
     for i, player in enumerate(st.session_state.players):
-        cols[i].metric(player, int(final_totals[player]))
+        cols[i].metric(player, int(live_totals[player]))
 
     if not st.session_state.get('game_finished'):
         if st.button("🏁 Finish & Save Game", type="primary", use_container_width=True):
-            winner = max(final_totals, key=final_totals.get)
+            final_calculated_scores = {}
+            
+            for player in st.session_state.players:
+                # 1. Sum up the 1s through Full House
+                base_score = edited_scores.loc["1s":"Full House", player].sum()
+                
+                # 2. Check for penalties on the "Tricks"
+                # If the value is 0 or False, apply penalty
+                penalty = 0
+                if not edited_scores.at["Low Straight", player]: penalty -= 15
+                if not edited_scores.at["High Straight", player]: penalty -= 20
+                if not edited_scores.at["5 of a Kind", player]: penalty -= 30
+                
+                # 3. Add trick points if they were entered as positive values (e.g. 21, 30, 50)
+                # plus the base score, minus any penalties
+                trick_points = edited_scores.loc["Low Straight":"5 of a Kind", player].sum()
+                
+                final_calculated_scores[player] = base_score + trick_points + penalty
+
+            winner = max(final_calculated_scores, key=final_calculated_scores.get)
             st.balloons()
+            
+            # Save to history
             for p in st.session_state.players:
-                stats[p]["scores"].append(int(final_totals[p]))
+                stats[p]["scores"].append(int(final_calculated_scores[p]))
                 if p == winner: stats[p]["wins"] += 1
             save_data(stats)
+            
             st.session_state.game_finished = True
+            st.session_state.final_results = final_calculated_scores
             st.rerun()
     else:
-        st.success(f"🏆 Game Saved!")
+        st.success("🏆 Final Scores (Penalties Applied):")
+        res_cols = st.columns(len(st.session_state.players))
+        for i, player in enumerate(st.session_state.players):
+            res_cols[i].metric(player, int(st.session_state.final_results[player]))
+            
         if st.button("🔄 Start a New Game", use_container_width=True):
             st.session_state.game_active = False
+            st.session_state.game_finished = False
             st.rerun()
