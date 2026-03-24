@@ -3,9 +3,32 @@ import pandas as pd
 import json
 import os
 import random
+from collections import Counter
+
+# --- [Core Scoring Logic - Full House Penalty Version] ---
+def get_score_value(dice, category):
+    dice.sort()
+    counts = Counter(dice)
+    val_list = sorted(counts.items(), key=lambda x: x[1], reverse=True)
+
+    if category == "1s": return dice.count(1) * 1
+    if category == "2s": return dice.count(2) * 2
+    if category == "3s": return dice.count(3) * 3
+    if category == "4s": return dice.count(4) * 4
+    if category == "5s": return dice.count(5) * 5
+    if category == "6s": return dice.count(6) * 6
+    if category == "Full House":
+        if len(val_list) == 2 and val_list[0][1] == 3 and val_list[1][1] == 2:
+            three_val, two_val = val_list[0][0], val_list[1][0]
+            return ((6 - three_val) * 3) + ((5 - two_val) * 2)
+        return 0
+    if category == "Low Straight": return 21 if dice == [1, 2, 3, 4, 5] else 0
+    if category == "High Straight": return 30 if dice == [2, 3, 4, 5, 6] else 0
+    if category == "5 of a Kind": return 50 if 5 in list(counts.values()) else 0
+    return 0
 
 # --- Configuration & Data ---
-st.set_page_config(page_title="Double Cameroon Game", layout="wide")
+st.set_page_config(page_title="Double Cameroon", layout="wide")
 DB_FILE = "cameroon_stats.json"
 
 def load_data():
@@ -15,148 +38,77 @@ def load_data():
         except: return {}
     return {}
 
-def save_data(data):
-    with open(DB_FILE, "w") as f: json.dump(data, f, indent=4)
-
 stats = load_data()
 
-# --- Initialize Session State ---
-if 'game_active' not in st.session_state:
-    st.session_state.game_active = False
-if 'dice' not in st.session_state:
-    st.session_state.dice = [random.randint(1, 6) for _ in range(10)]
-if 'trickA_indices' not in st.session_state:
-    st.session_state.trickA_indices = []
-if 'trickB_indices' not in st.session_state:
-    st.session_state.trickB_indices = []
-if 'rolls_left' not in st.session_state:
-    st.session_state.rolls_left = 3
-if 'current_player_idx' not in st.session_state:
-    st.session_state.current_player_idx = 0
-
-# --- Start Screen ---
-if not st.session_state.game_active:
-    st.title("🎲 Double Cameroon")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.write("### 1. Profiles")
-        new_p = st.text_input("Create Profile:", placeholder="e.g. Alice")
-        if st.button("Add Profile") and new_p:
-            if new_p not in stats:
-                stats[new_p] = {"scores": [], "wins": 0}; save_data(stats); st.rerun()
-    with col2:
-        st.write("### 2. Players")
-        selected = st.multiselect("Select Players", list(stats.keys()), max_selections=6)
-        if st.button("🚀 Start Game") and selected:
-            st.session_state.players = selected
-            st.session_state.current_player_idx = 0
-            st.session_state.scores = {
-                "1s": pd.DataFrame(0, index=["1s"], columns=selected),
-                "2s": pd.DataFrame(0, index=["2s"], columns=selected),
-                "3s": pd.DataFrame(0, index=["3s"], columns=selected),
-                "4s": pd.DataFrame(0, index=["4s"], columns=selected),
-                "5s": pd.DataFrame(0, index=["5s"], columns=selected),
-                "6s": pd.DataFrame(0, index=["6s"], columns=selected),
-                "Full House": pd.DataFrame(0, index=["Full House"], columns=selected),
-                "Tricks": pd.DataFrame(False, index=["Low Straight", "High Straight", "5 of a Kind"], columns=selected)
-            }
-            st.session_state.game_active = True
-            st.rerun()
-
-# --- Active Game Area ---
-else:
-    current_p = st.session_state.players[st.session_state.current_player_idx]
-    st.header(f"👤 {current_p}'s Turn")
-    
-    # --- DICE TRAY ---
-    st.subheader(f"Rolls Remaining: {st.session_state.rolls_left}")
-    
-    if st.button("🎲 ROLL DICE", use_container_width=True, type="primary", disabled=st.session_state.rolls_left == 0):
-        all_locked = st.session_state.trickA_indices + st.session_state.trickB_indices
-        for i in range(10):
-            if i not in all_locked:
-                st.session_state.dice[i] = random.randint(1, 6)
-        st.session_state.rolls_left -= 1
-        st.rerun()
-
-    dice_cols = st.columns(10)
-    for i in range(10):
-        with dice_cols[i]:
-            inA = i in st.session_state.trickA_indices
-            inB = i in st.session_state.trickB_indices
-            
-            st.button(f"{st.session_state.dice[i]}", key=f"v_{i}", 
-                      disabled=True, use_container_width=True,
-                      type="primary" if (inA or inB) else "secondary")
-            
-            c1, c2 = st.columns(2)
-            if c1.button("A", key=f"tA_{i}", type="primary" if inA else "secondary"):
-                if inA:
-                    st.session_state.trickA_indices.remove(i)
-                else:
-                    if inB: st.session_state.trickB_indices.remove(i)
-                    st.session_state.trickA_indices.append(i)
-                st.rerun()
-            
-            if c2.button("B", key=f"tB_{i}", type="primary" if inB else "secondary"):
-                if inB:
-                    st.session_state.trickB_indices.remove(i)
-                else:
-                    if inA: st.session_state.trickA_indices.remove(i)
-                    st.session_state.trickB_indices.append(i)
-                st.rerun()
-
-    # --- ORDERED TRICK DISPLAYS ---
+# --- Sidebar Version Toggle ---
+with st.sidebar:
+    st.title("⚙️ Game Settings")
+    auto_mode = st.checkbox("Enable Auto-Scoring", value=True, help="Toggle the automated 'Apply' dropdowns")
     st.divider()
-    tA_col, tB_col = st.columns(2)
-    with tA_col:
-        tA_vals = [st.session_state.dice[idx] for idx in st.session_state.trickA_indices]
-        st.markdown(f"### ✨ Trick A ({len(tA_vals)}/5): `{tA_vals}`")
-    with tB_col:
-        tB_vals = [st.session_state.dice[idx] for idx in st.session_state.trickB_indices]
-        st.markdown(f"### ✨ Trick B ({len(tB_vals)}/5): `{tB_vals}`")
-
-    # --- TURN RESET & FINISH (NOW ABOVE SCORING) ---
-    st.divider()
-    col_reset, col_finish = st.columns(2)
-    
-    if col_reset.button("✅ End Turn & Next Player", use_container_width=True):
-        st.session_state.dice = [random.randint(1, 6) for _ in range(10)]
-        st.session_state.trickA_indices = []
-        st.session_state.trickB_indices = []
-        st.session_state.rolls_left = 3
-        st.session_state.current_player_idx = (st.session_state.current_player_idx + 1) % len(st.session_state.players)
-        st.rerun()
-
-    if col_finish.button("🏁 Finish Game & Save Scores", type="primary", use_container_width=True):
-        final_scores = {}
-        for p in st.session_state.players:
-            total = sum(int(st.session_state.scores[cat][p].iloc[0]) for cat in ["1s", "2s", "3s", "4s", "5s", "6s", "Full House"])
-            if not st.session_state.scores["Tricks"].at["Low Straight", p]: total += 15
-            if not st.session_state.scores["Tricks"].at["High Straight", p]: total += 20
-            if not st.session_state.scores["Tricks"].at["5 of a Kind", p]: total += 30
-            final_scores[p] = total
-        
-        winner = max(final_scores, key=final_scores.get)
-        for p in st.session_state.players:
-            stats[p]["scores"].append(final_scores[p])
-            if p == winner: stats[p]["wins"] += 1
-        save_data(stats)
+    if st.button("🚫 Quit Current Game"):
         st.session_state.game_active = False
         st.rerun()
 
-    # --- SCORING TABLE (BELOW ACTIONS) ---
-    st.divider()
-    st.subheader("📝 Scoring Table")
-    
-    def render_row(label, multiplier):
-        options = [i * multiplier for i in range(7)]
-        config = {p: st.column_config.SelectboxColumn(p, options=options) for p in st.session_state.players}
-        st.session_state.scores[label] = st.data_editor(st.session_state.scores[label], column_config=config, use_container_width=True, key=f"ed_{label}_{st.session_state.current_player_idx}")
+# --- Initialize Session State (Same as before) ---
+if 'game_active' not in st.session_state: st.session_state.game_active = False
 
-    for row, mult in [("1s", 1), ("2s", 2), ("3s", 3), ("4s", 4), ("5s", 5), ("6s", 6)]:
-        render_row(row, mult)
+# [Start Screen Logic here...]
+
+# --- Active Game Area ---
+if st.session_state.game_active:
+    current_p = st.session_state.players[st.session_state.current_player_idx]
+    st.header(f"👤 {current_p}'s Turn")
     
-    st.session_state.scores["Full House"] = st.data_editor(st.session_state.scores["Full House"], use_container_width=True, key=f"ed_fh_{st.session_state.current_player_idx}")
-    trick_config = {p: st.column_config.CheckboxColumn(p) for p in st.session_state.players}
-    st.session_state.scores["Tricks"] = st.data_editor(st.session_state.scores["Tricks"], column_config=trick_config, use_container_width=True, key=f"ed_tricks_{st.session_state.current_player_idx}")
+    # --- 1. DICE TRAY ---
+    # (Existing Dice Tray / Trick A & B Logic here)
+    # ...
+
+    # --- 2. OPTIONAL AUTO-SCORER ---
+    if auto_mode:
+        st.divider()
+        tA_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickA_indices])
+        tB_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickB_indices])
+        
+        col_autoA, col_autoB = st.columns(2)
+        
+        # Function to only show valid "Trick" options
+        def get_valid_opts(dice):
+            opts = ["1s", "2s", "3s", "4s", "5s", "6s"]
+            if get_score_value(dice, "Full House") > 0: opts.append("Full House")
+            if get_score_value(dice, "Low Straight") > 0: opts.append("Low Straight")
+            if get_score_value(dice, "High Straight") > 0: opts.append("High Straight")
+            if get_score_value(dice, "5 of a Kind") > 0: opts.append("5 of a Kind")
+            return opts
+
+        with col_autoA:
+            st.markdown(f"### ✨ Trick A ({len(tA_vals)}/5): `{tA_vals}`")
+            if len(tA_vals) == 5:
+                cat_a = st.selectbox("Assign A to:", get_valid_opts(tA_vals), key="sel_a")
+                if st.button("Apply A"):
+                    val = get_score_value(tA_vals, cat_a)
+                    if cat_a in ["Low Straight", "High Straight", "5 of a Kind"]:
+                        st.session_state.scores["Tricks"].at[cat_a, current_p] = True
+                    else: st.session_state.scores[cat_a].at[cat_a, current_p] = val
+                    st.rerun()
+
+        with col_autoB:
+            st.markdown(f"### ✨ Trick B ({len(tB_vals)}/5): `{tB_vals}`")
+            if len(tB_vals) == 5:
+                cat_b = st.selectbox("Assign B to:", get_valid_opts(tB_vals), key="sel_b")
+                if st.button("Apply B"):
+                    val = get_score_value(tB_vals, cat_b)
+                    if cat_b in ["Low Straight", "High Straight", "5 of a Kind"]:
+                        st.session_state.scores["Tricks"].at[cat_b, current_p] = True
+                    else: st.session_state.scores[cat_b].at[cat_b, current_p] = val
+                    st.rerun()
+    else:
+        # Simple view if Auto-Scoring is OFF
+        st.divider()
+        c1, c2 = st.columns(2)
+        tA_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickA_indices])
+        tB_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickB_indices])
+        c1.markdown(f"### ✨ Trick A: `{tA_vals}`")
+        c2.markdown(f"### ✨ Trick B: `{tB_vals}`")
+
+    # --- 3. ACTIONS & SCORECARD ---
+    # (Rest of your existing scorecard and End Turn logic)
