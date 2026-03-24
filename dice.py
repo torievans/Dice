@@ -27,8 +27,11 @@ if 'dice' not in st.session_state:
     st.session_state.dice = [random.randint(1, 6) for _ in range(10)]
 if 'held' not in st.session_state:
     st.session_state.held = [False] * 10
-if 'bank_assignments' not in st.session_state:
-    st.session_state.bank_assignments = [0] * 10 # 0: None, 1: A, 2: B
+# We now store the INDEX of the dice in these lists to maintain order
+if 'bank_a_indices' not in st.session_state:
+    st.session_state.bank_a_indices = []
+if 'bank_b_indices' not in st.session_state:
+    st.session_state.bank_b_indices = []
 if 'rolls_left' not in st.session_state:
     st.session_state.rolls_left = 3
 if 'current_player_idx' not in st.session_state:
@@ -69,7 +72,6 @@ else:
     # --- DICE TRAY ---
     st.subheader(f"Rolls Remaining: {st.session_state.rolls_left}")
     
-    # Roll Logic
     if st.button("🎲 ROLL DICE", use_container_width=True, type="primary", disabled=st.session_state.rolls_left == 0):
         for i in range(10):
             if not st.session_state.held[i]:
@@ -77,66 +79,76 @@ else:
         st.session_state.rolls_left -= 1
         st.rerun()
 
-    # Display 10 Dice with Controls
     dice_cols = st.columns(10)
     for i in range(10):
         with dice_cols[i]:
-            # Die Face
             st.button(f"{st.session_state.dice[i]}", key=f"v_{i}", disabled=True, use_container_width=True)
-            
-            # Hold Checkbox
             st.session_state.held[i] = st.checkbox("Hold", value=st.session_state.held[i], key=f"h_{i}")
             
-            # Banking Buttons
+            # Banking Buttons Logic
             c1, c2 = st.columns(2)
-            if c1.button("A", key=f"ba_{i}", type="primary" if st.session_state.bank_assignments[i]==1 else "secondary"):
-                st.session_state.bank_assignments[i] = 1 if st.session_state.bank_assignments[i] != 1 else 0
+            
+            # Button A
+            is_in_a = i in st.session_state.bank_a_indices
+            if c1.button("A", key=f"ba_{i}", type="primary" if is_in_a else "secondary"):
+                if is_in_a:
+                    st.session_state.bank_a_indices.remove(i)
+                else:
+                    if i in st.session_state.bank_b_indices: st.session_state.bank_b_indices.remove(i)
+                    st.session_state.bank_a_indices.append(i)
                 st.rerun()
-            if c2.button("B", key=f"bb_{i}", type="primary" if st.session_state.bank_assignments[i]==2 else "secondary"):
-                st.session_state.bank_assignments[i] = 2 if st.session_state.bank_assignments[i] != 2 else 0
+            
+            # Button B
+            is_in_b = i in st.session_state.bank_b_indices
+            if c2.button("B", key=f"bb_{i}", type="primary" if is_in_b else "secondary"):
+                if is_in_b:
+                    st.session_state.bank_b_indices.remove(i)
+                else:
+                    if i in st.session_state.bank_a_indices: st.session_state.bank_a_indices.remove(i)
+                    st.session_state.bank_b_indices.append(i)
                 st.rerun()
 
-    # --- VISUAL BANKS ---
+    # --- ORDERED BANKS ---
     st.divider()
     bA_col, bB_col = st.columns(2)
     
     with bA_col:
-        bank_a = [st.session_state.dice[i] for i in range(10) if st.session_state.bank_assignments[i] == 1]
-        st.markdown(f"### 🏦 Bank A: `{bank_a}`")
-        if len(bank_a) > 5: st.error("Max 5 dice!")
+        bank_a_vals = [st.session_state.dice[idx] for idx in st.session_state.bank_a_indices]
+        st.markdown(f"### 🏦 Bank A: `{bank_a_vals}`")
+        if len(bank_a_vals) > 5: st.error("⚠️ Max 5 dice!")
         
     with bB_col:
-        bank_b = [st.session_state.dice[i] for i in range(10) if st.session_state.bank_assignments[i] == 2]
-        st.markdown(f"### 🏦 Bank B: `{bank_b}`")
-        if len(bank_b) > 5: st.error("Max 5 dice!")
+        bank_b_vals = [st.session_state.dice[idx] for idx in st.session_state.bank_b_indices]
+        st.markdown(f"### 🏦 Bank B: `{bank_b_vals}`")
+        if len(bank_b_vals) > 5: st.error("⚠️ Max 5 dice!")
 
-    # --- SCORING TABLES ---
+    # --- SCORING ---
     st.divider()
     st.subheader("📝 Scoring")
     
     def render_row(label, multiplier):
         options = [i * multiplier for i in range(7)]
         config = {p: st.column_config.SelectboxColumn(p, options=options) for p in st.session_state.players}
-        st.session_state.scores[label] = st.data_editor(st.session_state.scores[label], column_config=config, use_container_width=True, key=f"ed_{label}")
+        st.session_state.scores[label] = st.data_editor(st.session_state.scores[label], column_config=config, use_container_width=True, key=f"ed_{label}_{st.session_state.current_player_idx}")
 
     for row, mult in [("1s", 1), ("2s", 2), ("3s", 3), ("4s", 4), ("5s", 5), ("6s", 6)]:
         render_row(row, mult)
     
-    st.session_state.scores["Full House"] = st.data_editor(st.session_state.scores["Full House"], use_container_width=True, key="ed_fh")
+    st.session_state.scores["Full House"] = st.data_editor(st.session_state.scores["Full House"], use_container_width=True, key=f"ed_fh_{st.session_state.current_player_idx}")
     trick_config = {p: st.column_config.CheckboxColumn(p) for p in st.session_state.players}
-    st.session_state.scores["Tricks"] = st.data_editor(st.session_state.scores["Tricks"], column_config=trick_config, use_container_width=True, key="ed_tricks")
+    st.session_state.scores["Tricks"] = st.data_editor(st.session_state.scores["Tricks"], column_config=trick_config, use_container_width=True, key=f"ed_tricks_{st.session_state.current_player_idx}")
 
-    # --- TURN & GAME END ---
+    # --- TURN RESET ---
     if st.button("✅ End Turn & Next Player", use_container_width=True):
         st.session_state.dice = [random.randint(1, 6) for _ in range(10)]
         st.session_state.held = [False] * 10
-        st.session_state.bank_assignments = [0] * 10
+        st.session_state.bank_a_indices = []
+        st.session_state.bank_b_indices = []
         st.session_state.rolls_left = 3
         st.session_state.current_player_idx = (st.session_state.current_player_idx + 1) % len(st.session_state.players)
         st.rerun()
 
     if st.button("🏁 Finish Game", type="primary"):
-        # Penalty calculation logic
         final_scores = {}
         for p in st.session_state.players:
             total = sum(int(st.session_state.scores[cat][p].iloc[0]) for cat in ["1s", "2s", "3s", "4s", "5s", "6s", "Full House"])
