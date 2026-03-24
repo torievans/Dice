@@ -1,4 +1,5 @@
 import streamlit as st
+import pd
 import pandas as pd
 import json
 import os
@@ -90,10 +91,14 @@ elif not st.session_state.game_active:
 # SHOW GAMEPLAY
 if st.session_state.game_active and not st.session_state.game_over:
     current_p = st.session_state.players[st.session_state.current_player_idx]
-    st.header(f"👤 {current_p}'s Turn")
+    
+    # Turn Calculation: 2 tricks per turn, 10 total categories. (0 tricks = turn 1, 2 tricks = turn 2, etc.)
+    turn_num = (len(st.session_state.used_categories[current_p]) // 2) + 1
+    st.header(f"👤 {current_p}'s Turn [{turn_num}/5]")
     
     # DICE TRAY
     st.subheader(f"Rolls Remaining: {st.session_state.rolls_left}")
+    
     if st.button("🎲 ROLL DICE", use_container_width=True, type="primary", disabled=st.session_state.rolls_left == 0):
         locked = st.session_state.trickA_indices + st.session_state.trickB_indices
         for i in range(10):
@@ -155,6 +160,8 @@ if st.session_state.game_active and not st.session_state.game_over:
             else:
                 st.session_state.master_scores.at[s, current_p] = calculate_score(v, s)
             st.session_state.used_categories[current_p].append(s)
+        
+        # Reset for next turn
         st.session_state.dice = [random.randint(1, 6) for _ in range(10)]
         st.session_state.trickA_indices, st.session_state.trickB_indices = [], []
         st.session_state.rolls_left = 3
