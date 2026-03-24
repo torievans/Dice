@@ -5,39 +5,40 @@ import os
 import random
 from collections import Counter
 
-# --- 1. SCORING ENGINE ---
+# --- 1. THE PENALTY ENGINE ---
 def calculate_score(dice, category):
     dice.sort()
     counts = Counter(dice)
-    val_counts = list(counts.values())
-
-    if category == "1s": return dice.count(1) * 1
-    if category == "2s": return dice.count(2) * 2
-    if category == "3s": return dice.count(3) * 3
-    if category == "4s": return dice.count(4) * 4
-    if category == "5s": return dice.count(5) * 5
-    if category == "6s": return dice.count(6) * 6
     
+    # 1s through 6s: Penalty = (Category Value) * (Number of non-matching dice)
+    target_map = {"1s": 1, "2s": 2, "3s": 3, "4s": 4, "5s": 5, "6s": 6}
+    if category in target_map:
+        target = target_map[category]
+        mismatches = sum(1 for d in dice if d != target)
+        return mismatches * target
+
+    # Full House: Penalty = Distance from 6-6-6 and 5-5
     if category == "Full House":
-        # Check for 3 of one, 2 of another (or 5 of a kind as a perfect FH)
+        val_counts = list(counts.values())
         if (3 in val_counts and 2 in val_counts) or (5 in val_counts):
-            # Identify which number is the set of 3 and which is the set of 2
-            # If 5-of-a-kind, we treat the number as both for the best score
             sorted_groups = sorted(counts.items(), key=lambda x: x[1], reverse=True)
             three_val = sorted_groups[0][0]
             two_val = sorted_groups[1][0] if len(sorted_groups) > 1 else three_val
-            
-            # Distance from 6-6-6 and 5-5
             return ((6 - three_val) * 3) + ((5 - two_val) * 2)
-        return 0
+        return 0 # If they apply it here, we calculate the penalty. 
 
-    if category == "Low Straight": return 21 if dice == [1, 2, 3, 4, 5] else 0
-    if category == "High Straight": return 30 if dice == [2, 3, 4, 5, 6] else 0
-    if category == "5 of a Kind": return 50 if 5 in val_counts else 0
+    # Tricks: If achieved and applied, score is 0.
+    if category == "Low Straight":
+        return 0 if dice == [1, 2, 3, 4, 5] else 15 # Logic helper
+    if category == "High Straight":
+        return 0 if dice == [2, 3, 4, 5, 6] else 20
+    if category == "5 of a Kind":
+        return 0 if len(set(dice)) == 1 else 30
+    
     return 0
 
 # --- 2. CONFIG & DATA ---
-st.set_page_config(page_title="Double Cameroon", layout="wide")
+st.set_page_config(page_title="Double Cameroon Penalty Edition", layout="wide")
 DB_FILE = "cameroon_stats.json"
 
 def load_data():
@@ -73,7 +74,6 @@ if not st.session_state.game_active:
         if st.button("🚀 Start Game") and selected:
             st.session_state.players = selected
             st.session_state.current_player_idx = 0
-            # Initialize Score Tables
             rows = ["1s", "2s", "3s", "4s", "5s", "6s", "Full House"]
             st.session_state.scores = {cat: pd.DataFrame(0, index=[cat], columns=selected) for cat in rows}
             st.session_state.scores["Tricks"] = pd.DataFrame(False, index=["Low Straight", "High Straight", "5 of a Kind"], columns=selected)
@@ -113,14 +113,13 @@ else:
                     st.session_state.trickB_indices.append(i)
                 st.rerun()
 
-    # TRICK ALLOCATION & DROPDOWNS
+    # TRICK ALLOCATION
     st.divider()
     tA_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickA_indices])
     tB_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickB_indices])
     
     def get_options(dice):
-        opts = ["1s", "2s", "3s", "4s", "5s", "6s"]
-        if calculate_score(dice, "Full House") > 0 or len(set(dice)) == 1: opts.append("Full House")
+        opts = ["1s", "2s", "3s", "4s", "5s", "6s", "Full House"]
         if dice == [1, 2, 3, 4, 5]: opts.append("Low Straight")
         if dice == [2, 3, 4, 5, 6]: opts.append("High Straight")
         if len(set(dice)) == 1 and len(dice) == 5: opts.append("5 of a Kind")
@@ -132,20 +131,22 @@ else:
         if len(tA_vals) == 5:
             sel_a = st.selectbox("Assign Trick A:", get_options(tA_vals), key="sA")
             if st.button("Apply A", use_container_width=True):
-                val = calculate_score(tA_vals, sel_a)
-                if sel_a in ["Low Straight", "High Straight", "5 of a Kind"]: st.session_state.scores["Tricks"].at[sel_a, current_p] = True
-                else: st.session_state.scores[sel_a].at[sel_a, current_p] = val
-                st.success(f"Applied {val} to {sel_a}")
+                if sel_a in ["Low Straight", "High Straight", "5 of a Kind"]:
+                    st.session_state.scores["Tricks"].at[sel_a, current_p] = True
+                else:
+                    st.session_state.scores[sel_a].at[sel_a, current_p] = calculate_score(tA_vals, sel_a)
+                st.rerun()
 
     with cb:
         st.markdown(f"### ✨ Trick B ({len(tB_vals)}/5): `{tB_vals}`")
         if len(tB_vals) == 5:
             sel_b = st.selectbox("Assign Trick B:", get_options(tB_vals), key="sB")
             if st.button("Apply B", use_container_width=True):
-                val = calculate_score(tB_vals, sel_b)
-                if sel_b in ["Low Straight", "High Straight", "5 of a Kind"]: st.session_state.scores["Tricks"].at[sel_b, current_p] = True
-                else: st.session_state.scores[sel_b].at[sel_b, current_p] = val
-                st.success(f"Applied {val} to {sel_b}")
+                if sel_b in ["Low Straight", "High Straight", "5 of a Kind"]:
+                    st.session_state.scores["Tricks"].at[sel_b, current_p] = True
+                else:
+                    st.session_state.scores[sel_b].at[sel_b, current_p] = calculate_score(tB_vals, sel_b)
+                st.rerun()
 
     # ACTIONS
     st.divider()
@@ -157,15 +158,19 @@ else:
         st.session_state.current_player_idx = (st.session_state.current_player_idx + 1) % len(st.session_state.players)
         st.rerun()
 
-    if c_done.button("🏁 Finish Game", type="primary", use_container_width=True):
+    if c_done.button("🏁 Finish Game (Lowest Score Wins)", type="primary", use_container_width=True):
         final = {}
         for p in st.session_state.players:
+            # Sum up numerical penalties
             score = sum(int(st.session_state.scores[c][p].iloc[0]) for c in ["1s", "2s", "3s", "4s", "5s", "6s", "Full House"])
+            # Add Trick penalties if box is NOT checked
             if not st.session_state.scores["Tricks"].at["Low Straight", p]: score += 15
             if not st.session_state.scores["Tricks"].at["High Straight", p]: score += 20
             if not st.session_state.scores["Tricks"].at["5 of a Kind", p]: score += 30
             final[p] = score
-        winner = max(final, key=final.get)
+        
+        # Winner is the person with the MINIMUM score
+        winner = min(final, key=final.get)
         for p in st.session_state.players:
             stats[p]["scores"].append(final[p])
             if p == winner: stats[p]["wins"] += 1
