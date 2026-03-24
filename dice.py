@@ -23,7 +23,7 @@ stats = load_data()
 if 'game_active' not in st.session_state:
     st.session_state.game_active = False
 if 'scores' not in st.session_state:
-    st.session_state.scores = {} # Dictionary to hold individual row DataFrames
+    st.session_state.scores = {}
 if 'players' not in st.session_state:
     st.session_state.players = []
 
@@ -71,13 +71,14 @@ if not st.session_state.game_active:
             st.session_state.game_finished = False
             st.rerun()
 
-else:
+# --- ONLY RENDER SCORES IF GAME IS ACTIVE AND DATA EXISTS ---
+elif st.session_state.game_active and "1s" in st.session_state.scores:
     st.subheader("📝 Live Scorecard")
     
-    # Helper function to render a row with specific multiples
+    # Helper to render rows with specific multiples (0 through 5 dice, or 6 dice as you specified)
     def render_row(label, multiplier, players):
-        options = [i * multiplier for i in range(6)]
-        config = {p: st.column_config.SelectboxColumn(p, options=options) for p in players}
+        options = [i * multiplier for i in range(7)] # range(7) includes 0, 1, 2, 3, 4, 5, 6
+        config = {p: st.column_config.SelectboxColumn(p, options=options, width="small") for p in players}
         st.session_state.scores[label] = st.data_editor(
             st.session_state.scores[label], 
             column_config=config, 
@@ -85,7 +86,6 @@ else:
             key=f"editor_{label}"
         )
 
-    # Render Multiples Rows
     render_row("1s", 1, st.session_state.players)
     render_row("2s", 2, st.session_state.players)
     render_row("3s", 3, st.session_state.players)
@@ -93,24 +93,23 @@ else:
     render_row("5s", 5, st.session_state.players)
     render_row("6s", 6, st.session_state.players)
 
-    # Full House (Numeric Input)
     st.write("**Full House**")
     st.session_state.scores["Full House"] = st.data_editor(
         st.session_state.scores["Full House"], use_container_width=True, key="editor_fh"
     )
 
-    # Tricks (Checkboxes)
     st.write("**Required Tricks**")
     trick_config = {p: st.column_config.CheckboxColumn(p) for p in st.session_state.players}
     st.session_state.scores["Tricks"] = st.data_editor(
         st.session_state.scores["Tricks"], column_config=trick_config, use_container_width=True, key="editor_tricks"
     )
 
-    # --- Calculation ---
+    # --- Calculation Logic ---
     current_totals = {p: 0 for p in st.session_state.players}
     for label in ["1s", "2s", "3s", "4s", "5s", "6s", "Full House"]:
         for p in st.session_state.players:
-            current_totals[p] += int(st.session_state.scores[label][p].iloc[0])
+            val = st.session_state.scores[label][p].iloc[0]
+            current_totals[p] += int(val) if pd.notnull(val) else 0
 
     st.divider()
     st.write("### Current Totals (Pre-Penalty)")
@@ -123,7 +122,6 @@ else:
             final_scores = {}
             for p in st.session_state.players:
                 score = current_totals[p]
-                # ADD penalties if unchecked
                 if not st.session_state.scores["Tricks"].at["Low Straight", p]: score += 15
                 if not st.session_state.scores["Tricks"].at["High Straight", p]: score += 20
                 if not st.session_state.scores["Tricks"].at["5 of a Kind", p]: score += 30
