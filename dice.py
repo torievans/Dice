@@ -49,7 +49,7 @@ if 'rolls_left' not in st.session_state: st.session_state.rolls_left = 3
 if 'current_player_idx' not in st.session_state: st.session_state.current_player_idx = 0
 if 'used_categories' not in st.session_state: st.session_state.used_categories = {}
 
-# --- 4. GAME OVER SCREEN ---
+# --- 4. NAVIGATION WRAPPER ---
 if st.session_state.game_over:
     st.balloons()
     st.title("🏆 Final Standings")
@@ -63,26 +63,27 @@ if st.session_state.game_over:
         st.session_state.game_active = False
         st.rerun()
 
-# --- 5. START SCREEN ---
 elif not st.session_state.game_active:
     st.title("🎲 Double Cameroon")
     col1, col2 = st.columns(2)
     with col1:
         new_p = st.text_input("Create Profile:")
         if st.button("Add Profile") and new_p:
-            if new_p not in stats: stats[new_p] = {"scores": [], "wins": 0}; save_data(stats); st.rerun()
+            if new__p not in stats: stats[new_p] = {"scores": [], "wins": 0}; save_data(stats); st.rerun()
     with col2:
         selected = st.multiselect("Select Players", list(stats.keys()))
         if st.button("🚀 Start Game") and selected:
             st.session_state.players = selected
             st.session_state.current_player_idx = 0
             st.session_state.used_categories = {p: [] for p in selected}
-            st.session_state.scores = {cat: pd.DataFrame(0, index=[cat], columns=selected) for cat in ["1s", "2s", "3s", "4s", "5s", "6s", "Full House"]}
-            st.session_state.scores["Tricks"] = pd.DataFrame(False, index=["Low Straight", "High Straight", "5 of a Kind"], columns=selected)
+            # Create a single master dataframe for 1s-6s and Full House
+            rows = ["1s", "2s", "3s", "4s", "5s", "6s", "Full House"]
+            st.session_state.master_scores = pd.DataFrame(0, index=rows, columns=selected)
+            st.session_state.trick_scores = pd.DataFrame(False, index=["Low Straight", "High Straight", "5 of a Kind"], columns=selected)
             st.session_state.game_active = True
             st.rerun()
 
-# --- 6. ACTIVE GAME INTERFACE ---
+# --- 5. ACTIVE GAME INTERFACE ---
 if st.session_state.game_active and not st.session_state.game_over:
     current_p = st.session_state.players[st.session_state.current_player_idx]
     st.header(f"👤 {current_p}'s Turn")
@@ -141,9 +142,9 @@ if st.session_state.game_active and not st.session_state.game_over:
         for s, v in [(sel_a, tA_vals), (sel_b, tB_vals)]:
             if s in ["Low Straight", "High Straight", "5 of a Kind"]:
                 if (s == "Low Straight" and v == [1,2,3,4,5]) or (s == "High Straight" and v == [2,3,4,5,6]) or (s == "5 of a Kind" and len(set(v)) == 1):
-                    st.session_state.scores["Tricks"].at[s, current_p] = True
+                    st.session_state.trick_scores.at[s, current_p] = True
             else:
-                st.session_state.scores[s].at[s, current_p] = calculate_score(v, s)
+                st.session_state.master_scores.at[s, current_p] = calculate_score(v, s)
             st.session_state.used_categories[current_p].append(s)
         
         st.session_state.dice = [random.randint(1, 6) for _ in range(10)]
@@ -155,24 +156,23 @@ if st.session_state.game_active and not st.session_state.game_over:
     if col_finish.button("🏁 Finish Game & Show Winner", use_container_width=True):
         final_scores = {}
         for p in st.session_state.players:
-            total = sum(int(st.session_state.scores[cat][p].iloc[0]) for cat in ["1s", "2s", "3s", "4s", "5s", "6s", "Full House"])
-            if not st.session_state.scores["Tricks"].at["Low Straight", p]: total += 15
-            if not st.session_state.scores["Tricks"].at["High Straight", p]: total += 20
-            if not st.session_state.scores["Tricks"].at["5 of a Kind", p]: total += 30
+            total = st.session_state.master_scores[p].sum()
+            if not st.session_state.trick_scores.at["Low Straight", p]: total += 15
+            if not st.session_state.trick_scores.at["High Straight", p]: total += 20
+            if not st.session_state.trick_scores.at["5 of a Kind", p]: total += 30
             final_scores[p] = total
         st.session_state.final_results = final_scores
         st.session_state.game_over = True
-        winner = min(final_scores, key=final_scores.get)
-        for p in st.session_state.players:
-            stats[p]["scores"].append(final_scores[p])
-            if p == winner: stats[p]["wins"] += 1
         save_data(stats)
         st.rerun()
 
-# --- 7. PERMANENT SCOREBOARD (Always Visible if Game Exists) ---
+# --- 6. PERMANENT UNIFIED SCOREBOARD ---
 if st.session_state.game_active or st.session_state.game_over:
     st.divider()
-    st.subheader("📊 Scoreboard Status")
-    for row in ["1s", "2s", "3s", "4s", "5s", "6s", "Full House"]:
-        st.table(st.session_state.scores[row])
-    st.table(st.session_state.scores["Tricks"])
+    st.subheader("📊 Unified Scorecard")
+    
+    # Numerical Table
+    st.data_editor(st.session_state.master_scores, use_container_width=True, disabled=True, key="master_view")
+    
+    # Trick Checkboxes Table
+    st.data_editor(st.session_state.trick_scores, use_container_width=True, disabled=True, key="trick_view")
