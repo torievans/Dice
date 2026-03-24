@@ -19,15 +19,15 @@ def save_data(data):
 
 stats = load_data()
 
-# --- Sidebar: Analytics ---
+# --- Sidebar ---
 with st.sidebar:
     st.title("📊 Stats & Settings")
     if stats and any(len(d['scores']) > 0 for d in stats.values()):
         with st.expander("🏆 Leaderboard", expanded=True):
-            perf = [{"Player": k, "Wins": v["wins"], "Avg": round(sum(v["scores"])/len(v["scores"]),1)} 
+            perf = [{"Player": k, "Wins": v["wins"], "Avg": round(sum(v["scores"])/len(v["scores"]), 1)} 
                     for k, v in stats.items() if v["scores"]]
             st.table(pd.DataFrame(perf).sort_values(by="Wins", ascending=False).set_index("Player"))
-
+    
     if st.session_state.get('game_active'):
         if st.button("🚫 Quit Game", type="primary", use_container_width=True):
             st.session_state.game_active = False
@@ -49,12 +49,12 @@ if not st.session_state.game_active:
         selected = st.multiselect("Select Players", list(stats.keys()), max_selections=6)
         if st.button("🚀 Start Game") and selected:
             st.session_state.players = selected
-            # Categories
-            rows = ["1s", "2s", "3s", "4s", "5s", "6s", "Full House", "Low Straight", "High Straight", "5 of a Kind"]
-            st.session_state.score_grid = pd.DataFrame(0, index=rows, columns=selected)
-            # Change trick rows to False for checkbox logic
-            for trick in ["Low Straight", "High Straight", "5 of a Kind"]:
-                st.session_state.score_grid.loc[trick] = False
+            # Table 1: Multiples & Full House
+            num_rows = ["1s", "2s", "3s", "4s", "5s", "6s", "Full House"]
+            st.session_state.num_grid = pd.DataFrame(0, index=num_rows, columns=selected)
+            # Table 2: Required Tricks (Checkboxes)
+            trick_rows = ["Low Straight", "High Straight", "5 of a Kind"]
+            st.session_state.trick_grid = pd.DataFrame(False, index=trick_rows, columns=selected)
             
             st.session_state.game_active = True
             st.session_state.game_finished = False
@@ -62,27 +62,32 @@ if not st.session_state.game_active:
 
 else:
     st.subheader("📝 Live Scorecard")
-    
-    # --- Dynamic Dropdown Configuration ---
-    # We define the options for the first 6 rows specifically
-    config = {}
-    for player in st.session_state.players:
-        config[player] = st.column_config.SelectboxColumn(
-            player,
-            options=[0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 12, 15, 16, 18, 20, 21, 24, 25, 30, 36, 50, True, False],
-            help="Select score or check the box for tricks"
-        )
 
-    edited_df = st.data_editor(st.session_state.score_grid, use_container_width=True)
+    # --- TABLE 1: NUMERIC SCORES WITH DROPDOWNS ---
+    st.write("### Number Categories")
     
-    # Running Total (Sum of numeric values, ignoring booleans)
-    live_totals = {}
-    for p in st.session_state.players:
-        # Sum only numeric types to avoid errors with checkboxes during live play
-        live_totals[p] = pd.to_numeric(edited_df[p], errors='coerce').fillna(0).sum()
+    # We create unique dropdown options for each row
+    # Streamlit's data_editor applies config to the COLUMN, so we provide 
+    # a master list of all valid multiples for the dropdown.
+    all_multiples = [0] + [i*j for i in range(1,7) for j in range(1,7)] + [i for i in range(5, 31)] # Covers Full House too
+    all_multiples = sorted(list(set(all_multiples)))
 
+    num_config = {p: st.column_config.SelectboxColumn(p, options=all_multiples, width="medium") for p in st.session_state.players}
+    
+    edited_nums = st.data_editor(st.session_state.num_grid, column_config=num_config, use_container_width=True, key="num_editor")
+
+    # --- TABLE 2: TRICKS WITH CHECKBOXES ---
+    st.write("### Required Tricks")
+    
+    # Checkbox columns are triggered by the data type (Boolean)
+    trick_config = {p: st.column_config.CheckboxColumn(p, default=False) for p in st.session_state.players}
+    
+    edited_tricks = st.data_editor(st.session_state.trick_grid, column_config=trick_config, use_container_width=True, key="trick_editor")
+
+    # --- TOTALS & FINISH ---
+    live_totals = edited_nums.sum()
     st.divider()
-    st.write("### Live Totals (Pre-Penalty)")
+    st.write("### Current Totals (Pre-Penalty)")
     cols = st.columns(len(st.session_state.players))
     for i, player in enumerate(st.session_state.players):
         cols[i].metric(player, int(live_totals[player]))
@@ -91,14 +96,11 @@ else:
         if st.button("🏁 Finish & Save Game", type="primary", use_container_width=True):
             final_scores = {}
             for p in st.session_state.players:
-                # 1. Sum up numeric rows (1s-6s and Full House)
-                base = pd.to_numeric(edited_df.loc["1s":"Full House", p], errors='coerce').sum()
-                
-                # 2. Penalty Logic for Tricks
+                base = edited_nums[p].sum()
                 penalty = 0
-                if not edited_df.at["Low Straight", p]: penalty -= 15
-                if not edited_df.at["High Straight", p]: penalty -= 20
-                if not edited_df.at["5 of a Kind", p]: penalty -= 30
+                if not edited_tricks.at["Low Straight", p]: penalty -= 15
+                if not edited_tricks.at["High Straight", p]: penalty -= 20
+                if not edited_tricks.at["5 of a Kind", p]: penalty -= 30
                 
                 final_scores[p] = base + penalty
 
