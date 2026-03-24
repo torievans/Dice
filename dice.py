@@ -49,26 +49,33 @@ if 'rolls_left' not in st.session_state: st.session_state.rolls_left = 3
 if 'current_player_idx' not in st.session_state: st.session_state.current_player_idx = 0
 if 'used_categories' not in st.session_state: st.session_state.used_categories = {}
 
-# --- 4. CSS FOR CUSTOM DICE STYLING ---
+# --- 4. CSS FOR SPECIFIC DICE STYLING ---
+# This CSS targets only the top row of buttons (the dice) based on their position
 st.markdown("""
     <style>
+    /* Targeting the Dice row buttons specifically */
     /* AVAILABLE DICE: White background, Black text */
-    div[data-testid="stColumn"] button[kind="secondary"] {
+    div[data-testid="stHorizontalBlock"] > div:nth-child(n) > div > div > button[kind="secondary"] {
         background-color: white !important;
         color: black !important;
-        border: 2px solid #333 !important;
-        height: 60px;
-        font-size: 24px;
-        font-weight: bold;
+        border: 2px solid #000000 !important;
+        height: 60px !important;
+        font-size: 24px !important;
+        font-weight: bold !important;
     }
     /* ALLOCATED (HELD) DICE: Black background, Grey text */
-    div[data-testid="stColumn"] button[kind="primary"] {
+    div[data-testid="stHorizontalBlock"] > div:nth-child(n) > div > div > button[kind="primary"] {
         background-color: black !important;
-        color: #888888 !important;
-        border: 2px solid #555 !important;
-        height: 60px;
-        font-size: 24px;
-        font-weight: bold;
+        color: #bbbbbb !important;
+        border: 2px solid #444444 !important;
+        height: 60px !important;
+        font-size: 24px !important;
+        font-weight: bold !important;
+    }
+    /* Ensure A/B boxes remain default Streamlit style */
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
+        height: auto !important;
+        font-size: 14px !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -108,11 +115,8 @@ elif not st.session_state.game_active:
 # --- 7. GAMEPLAY ---
 if st.session_state.game_active and not st.session_state.game_over:
     current_p = st.session_state.players[st.session_state.current_player_idx]
-    # Calculate turn number: Each turn uses 2 categories.
     turn_num = (len(st.session_state.used_categories[current_p]) // 2) + 1
     st.header(f"👤 {current_p}'s Turn [{turn_num}/5]")
-    
-    st.subheader(f"Rolls Remaining: {st.session_state.rolls_left}")
     
     if st.button("🎲 ROLL DICE", use_container_width=True, type="primary", disabled=st.session_state.rolls_left == 0):
         locked = st.session_state.trickA_indices + st.session_state.trickB_indices
@@ -130,13 +134,13 @@ if st.session_state.game_active and not st.session_state.game_over:
             inB = i in st.session_state.trickB_indices
             is_held = inA or inB
             
-            # Dice logic: Numbers only appear after the first roll
             dice_label = str(st.session_state.dice[i]) if st.session_state.first_roll_made else "?"
             
-            # Styling: Primary = Black/Grey (Held), Secondary = White/Black (Available)
+            # Use 'primary' for Held (Black/Grey) and 'secondary' for Available (White/Black)
             st.button(dice_label, key=f"v_{i}", disabled=True, type="primary" if is_held else "secondary")
 
             c1, c2 = st.columns(2)
+            # A and B buttons keep default Streamlit styling
             if c1.button("A", key=f"tA_{i}", disabled=not st.session_state.first_roll_made):
                 if inA: st.session_state.trickA_indices.remove(i)
                 else: 
@@ -150,7 +154,7 @@ if st.session_state.game_active and not st.session_state.game_over:
                     st.session_state.trickB_indices.append(i)
                 st.rerun()
 
-    # ALLOCATION
+    # ALLOCATION & SCOREBOARD... (The rest of your logic follows)
     st.divider()
     tA_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickA_indices])
     tB_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickB_indices])
@@ -186,7 +190,6 @@ if st.session_state.game_active and not st.session_state.game_over:
                 st.session_state.master_scores.at[s, current_p] = calculate_score(v, s)
             st.session_state.used_categories[current_p].append(s)
         
-        # Reset Turn
         st.session_state.dice = [0] * 10
         st.session_state.first_roll_made = False
         st.session_state.trickA_indices, st.session_state.trickB_indices = [], []
