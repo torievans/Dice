@@ -167,12 +167,26 @@ if st.session_state.game_active and not st.session_state.game_over:
         st.rerun()
 
 # --- 6. PERMANENT UNIFIED SCOREBOARD ---
+# Only show the scoreboard if the game has actually started
 if st.session_state.game_active or st.session_state.game_over:
-    st.divider()
-    st.subheader("📊 Unified Scorecard")
-    
-    # Numerical Table
-    st.data_editor(st.session_state.master_scores, use_container_width=True, disabled=True, key="master_view")
-    
-    # Trick Checkboxes Table
-    st.data_editor(st.session_state.trick_scores, use_container_width=True, disabled=True, key="trick_view")
+    # Check if the master_scores key exists to avoid the AttributeError
+    if "master_scores" in st.session_state:
+        st.divider()
+        st.subheader("📊 Unified Scorecard")
+        
+        # Numerical Table (1s-6s and Full House)
+        st.data_editor(
+            st.session_state.master_scores, 
+            use_container_width=True, 
+            disabled=True, 
+            key="master_view"
+        )
+        
+        # Trick Checkboxes Table (Straights and 5K)
+        if "trick_scores" in st.session_state:
+            st.data_editor(
+                st.session_state.trick_scores, 
+                use_container_width=True, 
+                disabled=True, 
+                key="trick_view"
+            )
