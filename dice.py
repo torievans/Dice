@@ -72,7 +72,6 @@ else:
     st.subheader(f"Rolls Remaining: {st.session_state.rolls_left}")
     
     if st.button("🎲 ROLL DICE", use_container_width=True, type="primary", disabled=st.session_state.rolls_left == 0):
-        # Dice in either Trick A or Trick B are locked
         all_locked = st.session_state.trickA_indices + st.session_state.trickB_indices
         for i in range(10):
             if i not in all_locked:
@@ -86,12 +85,10 @@ else:
             inA = i in st.session_state.trickA_indices
             inB = i in st.session_state.trickB_indices
             
-            # Die display (Blue if locked, Grey if free)
             st.button(f"{st.session_state.dice[i]}", key=f"v_{i}", 
                       disabled=True, use_container_width=True,
                       type="primary" if (inA or inB) else "secondary")
             
-            # Trick Assignment Buttons
             c1, c2 = st.columns(2)
             if c1.button("A", key=f"tA_{i}", type="primary" if inA else "secondary"):
                 if inA:
@@ -114,29 +111,16 @@ else:
     tA_col, tB_col = st.columns(2)
     with tA_col:
         tA_vals = [st.session_state.dice[idx] for idx in st.session_state.trickA_indices]
-        st.markdown(f"### ✨ Trick A: `{tA_vals}`")
+        st.markdown(f"### ✨ Trick A ({len(tA_vals)}/5): `{tA_vals}`")
     with tB_col:
         tB_vals = [st.session_state.dice[idx] for idx in st.session_state.trickB_indices]
-        st.markdown(f"### ✨ Trick B: `{tB_vals}`")
+        st.markdown(f"### ✨ Trick B ({len(tB_vals)}/5): `{tB_vals}`")
 
-    # --- SCORING ---
+    # --- TURN RESET & FINISH (NOW ABOVE SCORING) ---
     st.divider()
-    st.subheader("📝 Scoring Table")
+    col_reset, col_finish = st.columns(2)
     
-    def render_row(label, multiplier):
-        options = [i * multiplier for i in range(7)]
-        config = {p: st.column_config.SelectboxColumn(p, options=options) for p in st.session_state.players}
-        st.session_state.scores[label] = st.data_editor(st.session_state.scores[label], column_config=config, use_container_width=True, key=f"ed_{label}_{st.session_state.current_player_idx}")
-
-    for row, mult in [("1s", 1), ("2s", 2), ("3s", 3), ("4s", 4), ("5s", 5), ("6s", 6)]:
-        render_row(row, mult)
-    
-    st.session_state.scores["Full House"] = st.data_editor(st.session_state.scores["Full House"], use_container_width=True, key=f"ed_fh_{st.session_state.current_player_idx}")
-    trick_config = {p: st.column_config.CheckboxColumn(p) for p in st.session_state.players}
-    st.session_state.scores["Tricks"] = st.data_editor(st.session_state.scores["Tricks"], column_config=trick_config, use_container_width=True, key=f"ed_tricks_{st.session_state.current_player_idx}")
-
-    # --- TURN RESET ---
-    if st.button("✅ End Turn & Next Player", use_container_width=True):
+    if col_reset.button("✅ End Turn & Next Player", use_container_width=True):
         st.session_state.dice = [random.randint(1, 6) for _ in range(10)]
         st.session_state.trickA_indices = []
         st.session_state.trickB_indices = []
@@ -144,7 +128,7 @@ else:
         st.session_state.current_player_idx = (st.session_state.current_player_idx + 1) % len(st.session_state.players)
         st.rerun()
 
-    if st.button("🏁 Finish Game", type="primary"):
+    if col_finish.button("🏁 Finish Game & Save Scores", type="primary", use_container_width=True):
         final_scores = {}
         for p in st.session_state.players:
             total = sum(int(st.session_state.scores[cat][p].iloc[0]) for cat in ["1s", "2s", "3s", "4s", "5s", "6s", "Full House"])
@@ -160,3 +144,19 @@ else:
         save_data(stats)
         st.session_state.game_active = False
         st.rerun()
+
+    # --- SCORING TABLE (BELOW ACTIONS) ---
+    st.divider()
+    st.subheader("📝 Scoring Table")
+    
+    def render_row(label, multiplier):
+        options = [i * multiplier for i in range(7)]
+        config = {p: st.column_config.SelectboxColumn(p, options=options) for p in st.session_state.players}
+        st.session_state.scores[label] = st.data_editor(st.session_state.scores[label], column_config=config, use_container_width=True, key=f"ed_{label}_{st.session_state.current_player_idx}")
+
+    for row, mult in [("1s", 1), ("2s", 2), ("3s", 3), ("4s", 4), ("5s", 5), ("6s", 6)]:
+        render_row(row, mult)
+    
+    st.session_state.scores["Full House"] = st.data_editor(st.session_state.scores["Full House"], use_container_width=True, key=f"ed_fh_{st.session_state.current_player_idx}")
+    trick_config = {p: st.column_config.CheckboxColumn(p) for p in st.session_state.players}
+    st.session_state.scores["Tricks"] = st.data_editor(st.session_state.scores["Tricks"], column_config=trick_config, use_container_width=True, key=f"ed_tricks_{st.session_state.current_player_idx}")
