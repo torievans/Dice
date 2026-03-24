@@ -25,10 +25,10 @@ if 'game_active' not in st.session_state:
     st.session_state.game_active = False
 if 'dice' not in st.session_state:
     st.session_state.dice = [random.randint(1, 6) for _ in range(10)]
-if 'bank_a_indices' not in st.session_state:
-    st.session_state.bank_a_indices = []
-if 'bank_b_indices' not in st.session_state:
-    st.session_state.bank_b_indices = []
+if 'trick1_indices' not in st.session_state:
+    st.session_state.trick1_indices = []
+if 'trick2_indices' not in st.session_state:
+    st.session_state.trick2_indices = []
 if 'rolls_left' not in st.session_state:
     st.session_state.rolls_left = 3
 if 'current_player_idx' not in st.session_state:
@@ -69,12 +69,11 @@ else:
     # --- DICE TRAY ---
     st.subheader(f"Rolls Remaining: {st.session_state.rolls_left}")
     
-    # Combined Roll & Hold Logic
     if st.button("🎲 ROLL DICE", use_container_width=True, type="primary", disabled=st.session_state.rolls_left == 0):
-        # A die is "Held" if its index is in either Bank A or Bank B
-        all_held_indices = st.session_state.bank_a_indices + st.session_state.bank_b_indices
+        # Dice in either Trick 1 or Trick 2 are held
+        all_held = st.session_state.trick1_indices + st.session_state.trick2_indices
         for i in range(10):
-            if i not in all_held_indices:
+            if i not in all_held:
                 st.session_state.dice[i] = random.randint(1, 6)
         st.session_state.rolls_left -= 1
         st.rerun()
@@ -82,46 +81,45 @@ else:
     dice_cols = st.columns(10)
     for i in range(10):
         with dice_cols[i]:
-            # Visual check for bank status
-            in_a = i in st.session_state.bank_a_indices
-            in_b = i in st.session_state.bank_b_indices
+            in1 = i in st.session_state.trick1_indices
+            in2 = i in st.session_state.trick2_indices
             
-            # Die display
+            # Die display (Blue if held/assigned, Grey if free)
             st.button(f"{st.session_state.dice[i]}", key=f"v_{i}", 
                       disabled=True, use_container_width=True,
-                      type="primary" if (in_a or in_b) else "secondary")
+                      type="primary" if (in1 or in2) else "secondary")
             
-            # Banking Buttons
+            # Trick Assignment Buttons
             c1, c2 = st.columns(2)
-            if c1.button("A", key=f"ba_{i}", type="primary" if in_a else "secondary"):
-                if in_a:
-                    st.session_state.bank_a_indices.remove(i)
+            if c1.button("T1", key=f"t1_{i}", type="primary" if in1 else "secondary", help="Assign to Trick 1"):
+                if in1:
+                    st.session_state.trick1_indices.remove(i)
                 else:
-                    if in_b: st.session_state.bank_b_indices.remove(i)
-                    st.session_state.bank_a_indices.append(i)
+                    if in2: st.session_state.trick2_indices.remove(i)
+                    st.session_state.trick1_indices.append(i)
                 st.rerun()
             
-            if c2.button("B", key=f"bb_{i}", type="primary" if in_b else "secondary"):
-                if in_b:
-                    st.session_state.bank_b_indices.remove(i)
+            if c2.button("T2", key=f"t2_{i}", type="primary" if in2 else "secondary", help="Assign to Trick 2"):
+                if in2:
+                    st.session_state.trick2_indices.remove(i)
                 else:
-                    if in_a: st.session_state.bank_a_indices.remove(i)
-                    st.session_state.bank_b_indices.append(i)
+                    if in1: st.session_state.trick1_indices.remove(i)
+                    st.session_state.trick2_indices.append(i)
                 st.rerun()
 
-    # --- ORDERED BANKS ---
+    # --- ORDERED TRICK DISPLAYS ---
     st.divider()
-    bA_col, bB_col = st.columns(2)
-    with bA_col:
-        bank_a_vals = [st.session_state.dice[idx] for idx in st.session_state.bank_a_indices]
-        st.markdown(f"### 🏦 Bank A (Locked): `{bank_a_vals}`")
-    with bB_col:
-        bank_b_vals = [st.session_state.dice[idx] for idx in st.session_state.bank_b_indices]
-        st.markdown(f"### 🏦 Bank B (Locked): `{bank_b_vals}`")
+    t1_col, t2_col = st.columns(2)
+    with t1_col:
+        t1_vals = [st.session_state.dice[idx] for idx in st.session_state.trick1_indices]
+        st.markdown(f"### ✨ Trick 1 (Held): `{t1_vals}`")
+    with t2_col:
+        t2_vals = [st.session_state.dice[idx] for idx in st.session_state.trick2_indices]
+        st.markdown(f"### ✨ Trick 2 (Held): `{t2_vals}`")
 
     # --- SCORING ---
     st.divider()
-    st.subheader("📝 Scoring")
+    st.subheader("📝 Scoring Table")
     
     def render_row(label, multiplier):
         options = [i * multiplier for i in range(7)]
@@ -138,8 +136,8 @@ else:
     # --- TURN RESET ---
     if st.button("✅ End Turn & Next Player", use_container_width=True):
         st.session_state.dice = [random.randint(1, 6) for _ in range(10)]
-        st.session_state.bank_a_indices = []
-        st.session_state.bank_b_indices = []
+        st.session_state.trick1_indices = []
+        st.session_state.trick2_indices = []
         st.session_state.rolls_left = 3
         st.session_state.current_player_idx = (st.session_state.current_player_idx + 1) % len(st.session_state.players)
         st.rerun()
