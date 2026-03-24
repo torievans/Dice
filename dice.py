@@ -10,9 +10,11 @@ def calculate_score(dice, category):
     dice.sort()
     counts = Counter(dice)
     target_map = {"1s": 1, "2s": 2, "3s": 3, "4s": 4, "5s": 5, "6s": 6}
+    
     if category in target_map:
         target = target_map[category]
         return sum(1 for d in dice if d != target) * target
+    
     if category == "Full House":
         val_counts = list(counts.values())
         if (3 in val_counts and 2 in val_counts) or (5 in val_counts):
@@ -41,58 +43,31 @@ stats = load_data()
 # --- 3. INITIALIZE STATE ---
 if 'game_active' not in st.session_state: st.session_state.game_active = False
 if 'game_over' not in st.session_state: st.session_state.game_over = False
-if 'first_roll_made' not in st.session_state: st.session_state.first_roll_made = False
-if 'dice' not in st.session_state: st.session_state.dice = [0] * 10
+if 'final_results' not in st.session_state: st.session_state.final_results = {}
+if 'dice' not in st.session_state: st.session_state.dice = [random.randint(1, 6) for _ in range(10)]
 if 'trickA_indices' not in st.session_state: st.session_state.trickA_indices = []
 if 'trickB_indices' not in st.session_state: st.session_state.trickB_indices = []
 if 'rolls_left' not in st.session_state: st.session_state.rolls_left = 3
 if 'current_player_idx' not in st.session_state: st.session_state.current_player_idx = 0
 if 'used_categories' not in st.session_state: st.session_state.used_categories = {}
 
-# --- 4. CSS FOR SPECIFIC DICE STYLING ---
-# This CSS targets only the top row of buttons (the dice) based on their position
-st.markdown("""
-    <style>
-    /* Targeting the Dice row buttons specifically */
-    /* AVAILABLE DICE: White background, Black text */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(n) > div > div > button[kind="secondary"] {
-        background-color: white !important;
-        color: black !important;
-        border: 2px solid #000000 !important;
-        height: 60px !important;
-        font-size: 24px !important;
-        font-weight: bold !important;
-    }
-    /* ALLOCATED (HELD) DICE: Black background, Grey text */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(n) > div > div > button[kind="primary"] {
-        background-color: black !important;
-        color: #bbbbbb !important;
-        border: 2px solid #444444 !important;
-        height: 60px !important;
-        font-size: 24px !important;
-        font-weight: bold !important;
-    }
-    /* Ensure A/B boxes remain default Streamlit style */
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
-        height: auto !important;
-        font-size: 14px !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+# --- 4. NAVIGATION LOGIC ---
 
-# --- 5. GAME OVER SCREEN ---
+# SHOW RESULTS SCREEN
 if st.session_state.game_over:
-    st.title("🏆 Final Results")
+    st.balloons()
+    st.title("🏆 Final Standings")
     sorted_results = sorted(st.session_state.final_results.items(), key=lambda x: x[1])
     winner_name, winner_score = sorted_results[0]
     st.success(f"### The Winner is {winner_name} with {winner_score} points!")
     res_df = pd.DataFrame(sorted_results, columns=['Player', 'Final Score'])
     st.table(res_df.set_index('Player'))
     if st.button("🔄 Start New Game", use_container_width=True):
-        for key in list(st.session_state.keys()): del st.session_state[key]
+        st.session_state.game_over = False
+        st.session_state.game_active = False
         st.rerun()
 
-# --- 6. START SCREEN ---
+# SHOW START SCREEN
 elif not st.session_state.game_active:
     st.title("🎲 Double Cameroon")
     col1, col2 = st.columns(2)
@@ -112,49 +87,40 @@ elif not st.session_state.game_active:
             st.session_state.game_active = True
             st.rerun()
 
-# --- 7. GAMEPLAY ---
+# SHOW GAMEPLAY
 if st.session_state.game_active and not st.session_state.game_over:
     current_p = st.session_state.players[st.session_state.current_player_idx]
-    turn_num = (len(st.session_state.used_categories[current_p]) // 2) + 1
-    st.header(f"👤 {current_p}'s Turn [{turn_num}/5]")
+    st.header(f"👤 {current_p}'s Turn")
     
+    # DICE TRAY
+    st.subheader(f"Rolls Remaining: {st.session_state.rolls_left}")
     if st.button("🎲 ROLL DICE", use_container_width=True, type="primary", disabled=st.session_state.rolls_left == 0):
         locked = st.session_state.trickA_indices + st.session_state.trickB_indices
         for i in range(10):
             if i not in locked: st.session_state.dice[i] = random.randint(1, 6)
         st.session_state.rolls_left -= 1
-        st.session_state.first_roll_made = True
         st.rerun()
 
-    # DICE DISPLAY
     d_cols = st.columns(10)
     for i in range(10):
         with d_cols[i]:
-            inA = i in st.session_state.trickA_indices
-            inB = i in st.session_state.trickB_indices
-            is_held = inA or inB
-            
-            dice_label = str(st.session_state.dice[i]) if st.session_state.first_roll_made else "?"
-            
-            # Use 'primary' for Held (Black/Grey) and 'secondary' for Available (White/Black)
-            st.button(dice_label, key=f"v_{i}", disabled=True, type="primary" if is_held else "secondary")
-
+            inA, inB = i in st.session_state.trickA_indices, i in st.session_state.trickB_indices
+            st.button(f"{st.session_state.dice[i]}", key=f"v_{i}", disabled=True, use_container_width=True, type="primary" if (inA or inB) else "secondary")
             c1, c2 = st.columns(2)
-            # A and B buttons keep default Streamlit styling
-            if c1.button("A", key=f"tA_{i}", disabled=not st.session_state.first_roll_made):
+            if c1.button("A", key=f"tA_{i}", type="primary" if inA else "secondary"):
                 if inA: st.session_state.trickA_indices.remove(i)
                 else: 
                     if inB: st.session_state.trickB_indices.remove(i)
                     st.session_state.trickA_indices.append(i)
                 st.rerun()
-            if c2.button("B", key=f"tB_{i}", disabled=not st.session_state.first_roll_made):
+            if c2.button("B", key=f"tB_{i}", type="primary" if inB else "secondary"):
                 if inB: st.session_state.trickB_indices.remove(i)
                 else:
                     if inA: st.session_state.trickA_indices.remove(i)
                     st.session_state.trickB_indices.append(i)
                 st.rerun()
 
-    # ALLOCATION & SCOREBOARD... (The rest of your logic follows)
+    # TRICK LOGIC
     st.divider()
     tA_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickA_indices])
     tB_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickB_indices])
@@ -168,16 +134,16 @@ if st.session_state.game_active and not st.session_state.game_over:
 
     ca, cb = st.columns(2)
     with ca:
-        st.markdown(f"### ✨ Trick A ({len(tA_vals)}/5)")
+        st.markdown(f"### ✨ Trick A ({len(tA_vals)}/5): `{tA_vals}`")
         options_a = get_opts(tA_vals, current_p)
-        sel_a = st.selectbox("Assign Trick A:", options_a, key="sA") if len(tA_vals) == 5 else None
+        sel_a = st.selectbox("Assign Trick A to:", options_a, key="sA") if len(tA_vals) == 5 else None
     with cb:
-        st.markdown(f"### ✨ Trick B ({len(tB_vals)}/5)")
+        st.markdown(f"### ✨ Trick B ({len(tB_vals)}/5): `{tB_vals}`")
         options_b = get_opts(tB_vals, current_p)
         if sel_a and sel_a in options_b: options_b.remove(sel_a)
-        sel_b = st.selectbox("Assign Trick B:", options_b, key="sB") if len(tB_vals) == 5 else None
+        sel_b = st.selectbox("Assign Trick B to:", options_b, key="sB") if len(tB_vals) == 5 else None
 
-    # TURN ACTION
+    # TURN ACTIONS
     st.divider()
     col_end, col_finish = st.columns(2)
     can_end = (len(tA_vals) == 5 and len(tB_vals) == 5 and sel_a and sel_b)
@@ -189,15 +155,13 @@ if st.session_state.game_active and not st.session_state.game_over:
             else:
                 st.session_state.master_scores.at[s, current_p] = calculate_score(v, s)
             st.session_state.used_categories[current_p].append(s)
-        
-        st.session_state.dice = [0] * 10
-        st.session_state.first_roll_made = False
+        st.session_state.dice = [random.randint(1, 6) for _ in range(10)]
         st.session_state.trickA_indices, st.session_state.trickB_indices = [], []
         st.session_state.rolls_left = 3
         st.session_state.current_player_idx = (st.session_state.current_player_idx + 1) % len(st.session_state.players)
         st.rerun()
 
-    if col_finish.button("🏁 Finish Game", use_container_width=True):
+    if col_finish.button("🏁 Finish Game & Show Results", use_container_width=True):
         final = {}
         for p in st.session_state.players:
             total = st.session_state.master_scores[p].sum()
@@ -210,7 +174,7 @@ if st.session_state.game_active and not st.session_state.game_over:
         save_data(stats)
         st.rerun()
 
-# --- 8. PERMANENT SCOREBOARD ---
+# --- 5. PERMANENT SCOREBOARD ---
 if st.session_state.game_active or st.session_state.game_over:
     if "master_scores" in st.session_state:
         st.divider()
