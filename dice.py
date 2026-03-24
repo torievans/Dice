@@ -9,19 +9,19 @@ from collections import Counter
 def calculate_score(dice, category):
     dice.sort()
     counts = Counter(dice)
-    target_map = {"1s": 1, "2s": 2, "3s": 3, "4s": 4, "5s": 5, "6s": 6}
     
+    target_map = {"1s": 1, "2s": 2, "3s": 3, "4s": 4, "5s": 5, "6s": 6}
     if category in target_map:
         target = target_map[category]
         return sum(1 for d in dice if d != target) * target
     
     if category == "Full House":
-        val_counts = list(counts.values())
-        if (3 in val_counts and 2 in val_counts) or (5 in val_counts):
-            sorted_groups = sorted(counts.items(), key=lambda x: x[1], reverse=True)
-            three_val = sorted_groups[0][0]
-            two_val = sorted_groups[1][0] if len(sorted_groups) > 1 else three_val
-            return ((6 - three_val) * 3) + ((5 - two_val) * 2)
+        # Sort counts by frequency then value to find the best triple and pair
+        sorted_items = sorted(counts.items(), key=lambda x: (x[1], x[0]), reverse=True)
+        three_val = sorted_items[0][0]
+        # If 5 of a kind, pair value is the same as triple value
+        two_val = sorted_items[1][0] if len(sorted_items) > 1 else three_val
+        return ((6 - three_val) * 3) + ((5 - two_val) * 2)
     return 0 
 
 # --- 2. CONFIG & DATA ---
@@ -53,7 +53,6 @@ if 'used_categories' not in st.session_state: st.session_state.used_categories =
 
 # --- 4. NAVIGATION LOGIC ---
 
-# SHOW RESULTS SCREEN
 if st.session_state.game_over:
     st.balloons()
     st.title("🏆 Final Standings")
@@ -67,7 +66,6 @@ if st.session_state.game_over:
         st.session_state.game_active = False
         st.rerun()
 
-# SHOW START SCREEN
 elif not st.session_state.game_active:
     st.title("🎲 Double Cameroon")
     col1, col2 = st.columns(2)
@@ -90,12 +88,9 @@ elif not st.session_state.game_active:
 # SHOW GAMEPLAY
 if st.session_state.game_active and not st.session_state.game_over:
     current_p = st.session_state.players[st.session_state.current_player_idx]
-    
-    # Turn Calculation: 2 tricks per turn, 10 total categories. (0 tricks = turn 1, 2 tricks = turn 2, etc.)
     turn_num = (len(st.session_state.used_categories[current_p]) // 2) + 1
     st.header(f"👤 {current_p}'s Turn [{turn_num}/5]")
     
-    # DICE TRAY
     st.subheader(f"Rolls Remaining: {st.session_state.rolls_left}")
     
     if st.button("🎲 ROLL DICE", use_container_width=True, type="primary", disabled=st.session_state.rolls_left == 0):
@@ -130,10 +125,18 @@ if st.session_state.game_active and not st.session_state.game_over:
     tB_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickB_indices])
     
     def get_opts(dice, player):
-        opts = ["1s", "2s", "3s", "4s", "5s", "6s", "Full House"]
+        opts = ["1s", "2s", "3s", "4s", "5s", "6s"]
+        counts = Counter(dice)
+        val_counts = list(counts.values())
+        
+        # STRICT FULL HOUSE CHECK: Must be 3 of one, 2 of another (or 5 of a kind)
+        if (3 in val_counts and 2 in val_counts) or 5 in val_counts:
+            opts.append("Full House")
+            
         if dice == [1, 2, 3, 4, 5]: opts.append("Low Straight")
         if dice == [2, 3, 4, 5, 6]: opts.append("High Straight")
-        if len(set(dice)) == 1 and len(dice) == 5: opts.append("5 of a Kind")
+        if 5 in val_counts and len(dice) == 5: opts.append("5 of a Kind")
+        
         return [o for o in opts if o not in st.session_state.used_categories[player]]
 
     ca, cb = st.columns(2)
@@ -160,7 +163,6 @@ if st.session_state.game_active and not st.session_state.game_over:
                 st.session_state.master_scores.at[s, current_p] = calculate_score(v, s)
             st.session_state.used_categories[current_p].append(s)
         
-        # Reset for next turn
         st.session_state.dice = [random.randint(1, 6) for _ in range(10)]
         st.session_state.trickA_indices, st.session_state.trickB_indices = [], []
         st.session_state.rolls_left = 3
