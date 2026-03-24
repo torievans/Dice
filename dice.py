@@ -1,65 +1,125 @@
 import streamlit as st
-import random
+import pandas as pd
+import json
+import os
 
-st.set_page_config(page_title="Double Cameroon Scorer", layout="centered")
-st.title("🎲 Double Cameroon")
+# --- Configuration & Data Persistence ---
+st.set_page_config(page_title="Double Cameroon Scorer", layout="wide")
+DB_FILE = "cameroon_stats.json"
 
-# --- Initialize Session State ---
-if 'dice' not in st.session_state:
-    st.session_state.dice = [random.randint(1, 6) for _ in range(10)]
-    st.session_state.held = [False] * 10
-    st.session_state.rolls_left = 3
-    st.session_state.scores = {cat: None for cat in ["1s", "2s", "3s", "4s", "5s", "6s", "Little Cameroon", "Big Cameroon", "5-of-a-kind", "Any Sum"]}
+def load_data():
+    if os.path.exists(DB_FILE):
+        try:
+            with open(DB_FILE, "r") as f:
+                return json.load(f)
+        except:
+            return {}
+    return {}
 
-# --- Sidebar: Game Status ---
-st.sidebar.header("Game Stats")
-total_score = sum(v for v in st.session_state.scores.values() if v is not None)
-st.sidebar.metric("Total Score", total_score)
-st.sidebar.write(f"Rolls left this turn: {st.session_state.rolls_left}")
+def save_data(data):
+    with open(DB_FILE, "w") as f:
+        json.dump(data, f, indent=4)
 
-# --- Dice Section ---
-st.subheader("Your 10 Dice")
-cols = st.columns(10)
-for i in range(10):
-    with cols[i]:
-        st.button(f"{st.session_state.dice[i]}", key=f"die_{i}", 
-                  type="primary" if st.session_state.held[i] else "secondary")
-        st.session_state.held[i] = st.checkbox("Hold", value=st.session_state.held[i], key=f"hold_{i}")
+stats = load_data()
 
-if st.button("Roll Dice") and st.session_state.rolls_left > 0:
-    for i in range(10):
-        if not st.session_state.held[i]:
-            st.session_state.dice[i] = random.randint(1, 6)
-    st.session_state.rolls_left -= 1
-    st.rerun()
+# --- App Header ---
+st.title("🎲 Double Cameroon Scorer")
 
-# --- Scoring Section ---
-st.divider()
-st.subheader("Assign Your Groups")
-st.info("Pick 5 dice for Category A and 5 for Category B.")
+# --- Sidebar: Setup & Reset ---
+with st.sidebar:
+    st.header("Settings")
+    if st.button("Reset All Player Data", type="secondary"):
+        if os.path.exists(DB_FILE):
+            os.remove(DB_FILE)
+            st.rerun()
 
-# Helper to let user pick dice for groups
-hand_a_indices = st.multiselect("Select 5 dice for Hand A", range(10), max_selections=5)
-hand_b_indices = [i for i in range(10) if i not in hand_a_indices]
+# --- Game Logic & State ---
+if 'game_active' not in st.session_state:
+    st.session_state.game_active = False
 
-if len(hand_a_indices) == 5:
-    hand_a = [st.session_state.dice[i] for i in hand_a_indices]
-    hand_b = [st.session_state.dice[i] for i in hand_b_indices]
+if not st.session_state.game_active:
+    st.subheader("Start New Game")
     
     col1, col2 = st.columns(2)
     with col1:
-        st.write(f"Hand A: {hand_a}")
-        cat_a = st.selectbox("Assign Hand A to:", [c for c, v in st.session_state.scores.items() if v is None], key="cat_a")
-    with col2:
-        st.write(f"Hand B: {hand_b}")
-        cat_b = st.selectbox("Assign Hand B to:", [c for c, v in st.session_state.scores.items() if v is None and c != cat_a], key="cat_b")
+        new_player = st.text_input("Create New Profile:")
+        if st.button("Add Profile") and new_player:
+            if new_player not in stats:
+                stats[new_player] = {"scores": [], "wins": 0}
+                save_data(stats)
+                st.success(f"Added {new_player}!")
+                st.rerun()
 
-    if st.button("Submit Turn"):
-        st.session_state.scores[cat_a] = calculate_score(hand_a, cat_a)
-        st.session_state.scores[cat_b] = calculate_score(hand_b, cat_b)
-        # Reset for next round
-        st.session_state.dice = [random.randint(1, 6) for _ in range(10)]
-        st.session_state.held = [False] * 10
-        st.session_state.rolls_left = 3
-        st.success("Scores recorded!")
-        st.rerun()
+    with col2:
+        all_players = list(stats.keys())
+        selected_players = st.multiselect("Select Players (Max 6):", all_players, max_selections=6)
+        
+        if st.button("🚀 Start Game") and len(selected_players) > 0:
+            st.session_state.players = selected_players
+            categories = ["1s", "2s", "3s", "4s", "5s", "6s", "Full House", "Low Straight", "High Straight", "5 of a Kind"]
+            st.session_state.score_grid = pd.DataFrame(0, index=categories, columns=selected_players)
+            st.session_state.game_active = True
+            st.rerun()
+
+else:
+    # --- Active Game Screen ---
+    st.subheader("Live Scorecard")
+    st.info("Edit the cells below to record scores. The totals update automatically.")
+    
+    edited_df = st.data_editor(st.session_state.score_grid, use_container_width=True)
+    
+    # Calculate Totals
+    totals = edited_df.sum()
+    st.divider()
+    
+    cols = st.columns(len(st.session_state.players))
+    for i, player in enumerate(st.session_state.players):
+        cols[i].metric(player, int(totals[player]))
+
+    if st.button("🏁 Finish & Save Game"):
+        winner = totals.idxmax()
+        st.balloons()
+        st.success(f"The winner is {winner} with {totals[winner]} points!")
+        
+        # Update Stats dictionary
+        for player in st.session_state.players:
+            if player not in stats: stats[player] = {"scores": [], "wins": 0}
+            stats[player]["scores"].append(int(totals[player]))
+            if player == winner:
+                stats[player]["wins"] += 1
+        
+        save_data(stats)
+        st.session_state.game_active = False
+        if st.button("Play Again"):
+            st.rerun()
+
+# --- Performance Section ---
+st.divider()
+st.header("📊 Performance & Analytics")
+
+if stats and any(len(d['scores']) > 0 for d in stats.values()):
+    perf_data = []
+    chart_dict = {}
+
+    for name, data in stats.items():
+        scores = data.get("scores", [])
+        if scores:
+            avg = sum(scores) / len(scores)
+            perf_data.append({
+                "Player": name,
+                "Wins": data["wins"],
+                "Avg Score": round(avg, 1),
+                "Best": max(scores)
+            })
+            chart_dict[name] = scores
+
+    # Display Table
+    st.table(pd.DataFrame(perf_data).set_index("Player"))
+
+    # Display Trend Chart
+    st.subheader("Score Trends")
+    df_trends = pd.DataFrame(dict([(k, pd.Series(v)) for k, v in chart_dict.items()]))
+    df_trends.index = [f"Game {i+1}" for i in range(len(df_trends))]
+    st.line_chart(df_trends)
+else:
+    st.write("No career data available yet. Finish a game to see stats!")
