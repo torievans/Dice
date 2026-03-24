@@ -25,10 +25,10 @@ if 'game_active' not in st.session_state:
     st.session_state.game_active = False
 if 'dice' not in st.session_state:
     st.session_state.dice = [random.randint(1, 6) for _ in range(10)]
-if 'trick1_indices' not in st.session_state:
-    st.session_state.trick1_indices = []
-if 'trick2_indices' not in st.session_state:
-    st.session_state.trick2_indices = []
+if 'trickA_indices' not in st.session_state:
+    st.session_state.trickA_indices = []
+if 'trickB_indices' not in st.session_state:
+    st.session_state.trickB_indices = []
 if 'rolls_left' not in st.session_state:
     st.session_state.rolls_left = 3
 if 'current_player_idx' not in st.session_state:
@@ -39,11 +39,13 @@ if not st.session_state.game_active:
     st.title("🎲 Double Cameroon")
     col1, col2 = st.columns(2)
     with col1:
-        new_p = st.text_input("Create Profile:")
+        st.write("### 1. Profiles")
+        new_p = st.text_input("Create Profile:", placeholder="e.g. Alice")
         if st.button("Add Profile") and new_p:
             if new_p not in stats:
                 stats[new_p] = {"scores": [], "wins": 0}; save_data(stats); st.rerun()
     with col2:
+        st.write("### 2. Players")
         selected = st.multiselect("Select Players", list(stats.keys()), max_selections=6)
         if st.button("🚀 Start Game") and selected:
             st.session_state.players = selected
@@ -70,10 +72,10 @@ else:
     st.subheader(f"Rolls Remaining: {st.session_state.rolls_left}")
     
     if st.button("🎲 ROLL DICE", use_container_width=True, type="primary", disabled=st.session_state.rolls_left == 0):
-        # Dice in either Trick 1 or Trick 2 are held
-        all_held = st.session_state.trick1_indices + st.session_state.trick2_indices
+        # Dice in either Trick A or Trick B are locked
+        all_locked = st.session_state.trickA_indices + st.session_state.trickB_indices
         for i in range(10):
-            if i not in all_held:
+            if i not in all_locked:
                 st.session_state.dice[i] = random.randint(1, 6)
         st.session_state.rolls_left -= 1
         st.rerun()
@@ -81,41 +83,41 @@ else:
     dice_cols = st.columns(10)
     for i in range(10):
         with dice_cols[i]:
-            in1 = i in st.session_state.trick1_indices
-            in2 = i in st.session_state.trick2_indices
+            inA = i in st.session_state.trickA_indices
+            inB = i in st.session_state.trickB_indices
             
-            # Die display (Blue if held/assigned, Grey if free)
+            # Die display (Blue if locked, Grey if free)
             st.button(f"{st.session_state.dice[i]}", key=f"v_{i}", 
                       disabled=True, use_container_width=True,
-                      type="primary" if (in1 or in2) else "secondary")
+                      type="primary" if (inA or inB) else "secondary")
             
             # Trick Assignment Buttons
             c1, c2 = st.columns(2)
-            if c1.button("T1", key=f"t1_{i}", type="primary" if in1 else "secondary", help="Assign to Trick 1"):
-                if in1:
-                    st.session_state.trick1_indices.remove(i)
+            if c1.button("A", key=f"tA_{i}", type="primary" if inA else "secondary"):
+                if inA:
+                    st.session_state.trickA_indices.remove(i)
                 else:
-                    if in2: st.session_state.trick2_indices.remove(i)
-                    st.session_state.trick1_indices.append(i)
+                    if inB: st.session_state.trickB_indices.remove(i)
+                    st.session_state.trickA_indices.append(i)
                 st.rerun()
             
-            if c2.button("T2", key=f"t2_{i}", type="primary" if in2 else "secondary", help="Assign to Trick 2"):
-                if in2:
-                    st.session_state.trick2_indices.remove(i)
+            if c2.button("B", key=f"tB_{i}", type="primary" if inB else "secondary"):
+                if inB:
+                    st.session_state.trickB_indices.remove(i)
                 else:
-                    if in1: st.session_state.trick1_indices.remove(i)
-                    st.session_state.trick2_indices.append(i)
+                    if inA: st.session_state.trickA_indices.remove(i)
+                    st.session_state.trickB_indices.append(i)
                 st.rerun()
 
     # --- ORDERED TRICK DISPLAYS ---
     st.divider()
-    t1_col, t2_col = st.columns(2)
-    with t1_col:
-        t1_vals = [st.session_state.dice[idx] for idx in st.session_state.trick1_indices]
-        st.markdown(f"### ✨ Trick 1 (Held): `{t1_vals}`")
-    with t2_col:
-        t2_vals = [st.session_state.dice[idx] for idx in st.session_state.trick2_indices]
-        st.markdown(f"### ✨ Trick 2 (Held): `{t2_vals}`")
+    tA_col, tB_col = st.columns(2)
+    with tA_col:
+        tA_vals = [st.session_state.dice[idx] for idx in st.session_state.trickA_indices]
+        st.markdown(f"### ✨ Trick A: `{tA_vals}`")
+    with tB_col:
+        tB_vals = [st.session_state.dice[idx] for idx in st.session_state.trickB_indices]
+        st.markdown(f"### ✨ Trick B: `{tB_vals}`")
 
     # --- SCORING ---
     st.divider()
@@ -136,8 +138,8 @@ else:
     # --- TURN RESET ---
     if st.button("✅ End Turn & Next Player", use_container_width=True):
         st.session_state.dice = [random.randint(1, 6) for _ in range(10)]
-        st.session_state.trick1_indices = []
-        st.session_state.trick2_indices = []
+        st.session_state.trickA_indices = []
+        st.session_state.trickB_indices = []
         st.session_state.rolls_left = 3
         st.session_state.current_player_idx = (st.session_state.current_player_idx + 1) % len(st.session_state.players)
         st.rerun()
