@@ -40,44 +40,76 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. CUSTOM STYLING (Square Dice with Dots) ---
+# --- 3. CUSTOM STYLING (Freestanding Dice) ---
 st.markdown("""
     <style>
-    /* Make the dice buttons look like real square dice */
+    /* Targeting the dice buttons to remove the 'box' look */
     div[data-testid="stHorizontalBlock"] div[data-testid="stColumn"] > div > div > button {
-        height: 70px !important;
-        width: 70px !important;
-        font-size: 45px !important;
+        height: 80px !important;
+        width: 80px !important;
+        font-size: 65px !important; /* Larger pips */
         line-height: 1 !important;
         padding: 0 !important;
+        background-color: transparent !important; /* Remove box background */
+        border: none !important; /* Remove box borders */
+        box-shadow: none !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        border-radius: 10px !important;
     }
     
-    /* Available Dice: White background, Black text */
+    /* Available Dice: Standard Black dots */
     button[kind="secondary"] {
-        background-color: white !important;
         color: black !important;
-        border: 2px solid black !important;
     }
     
-    /* Held Dice: Black background, Grey text */
+    /* Held Dice: Grey dots to indicate they are "set" */
     button[kind="primary"] {
-        background-color: black !important;
-        color: #888888 !important;
-        border: 2px solid #444 !important;
+        color: #bbbbbb !important;
     }
 
-    /* Reset A/B buttons to standard styling */
+    /* Keep A/B buttons as standard small functional boxes */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
-        height: auto !important;
+        height: 30px !important;
         width: 100% !important;
         font-size: 14px !important;
+        background-color: #f0f2f6 !important;
+        border: 1px solid #d1d5db !important;
     }
     </style>
     """, unsafe_allow_html=True)
+
+# ... inside your gameplay loop ...
+
+    # Dice Faces Mapping
+    dice_faces = {0: "?", 1: "⚀", 2: "⚁", 3: "⚂", 4: "⚃", 5: "⚄", 6: "⚅"}
+
+    d_cols = st.columns(10)
+    for i in range(10):
+        with d_cols[i]:
+            inA, inB = i in st.session_state.trickA_indices, i in st.session_state.trickB_indices
+            is_held = inA or inB
+            
+            # Show dots only if rolled
+            label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
+            
+            # We use 'primary' style for Held and 'secondary' for Available
+            # The CSS above handles making these transparent/borderless
+            st.button(label, key=f"v_{i}", disabled=True, type="primary" if is_held else "secondary")
+            
+            c1, c2 = st.columns(2)
+            if c1.button("A", key=f"tA_{i}", disabled=not st.session_state.first_roll_made):
+                if inA: st.session_state.trickA_indices.remove(i)
+                else: 
+                    if inB: st.session_state.trickB_indices.remove(i)
+                    st.session_state.trickA_indices.append(i)
+                st.rerun()
+            if c2.button("B", key=f"tB_{i}", disabled=not st.session_state.first_roll_made):
+                if inB: st.session_state.trickB_indices.remove(i)
+                else:
+                    if inA: st.session_state.trickA_indices.remove(i)
+                    st.session_state.trickB_indices.append(i)
+                st.rerun()
 
 # --- 4. INITIALIZE STATE ---
 if 'game_active' not in st.session_state: st.session_state.game_active = False
