@@ -40,18 +40,58 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. INITIALIZE STATE ---
+# --- 3. CUSTOM STYLING (Square Dice with Dots) ---
+st.markdown("""
+    <style>
+    /* Make the dice buttons look like real square dice */
+    div[data-testid="stHorizontalBlock"] div[data-testid="stColumn"] > div > div > button {
+        height: 70px !important;
+        width: 70px !important;
+        font-size: 45px !important;
+        line-height: 1 !important;
+        padding: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 10px !important;
+    }
+    
+    /* Available Dice: White background, Black text */
+    button[kind="secondary"] {
+        background-color: white !important;
+        color: black !important;
+        border: 2px solid black !important;
+    }
+    
+    /* Held Dice: Black background, Grey text */
+    button[kind="primary"] {
+        background-color: black !important;
+        color: #888888 !important;
+        border: 2px solid #444 !important;
+    }
+
+    /* Reset A/B buttons to standard styling */
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
+        height: auto !important;
+        width: 100% !important;
+        font-size: 14px !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+# --- 4. INITIALIZE STATE ---
 if 'game_active' not in st.session_state: st.session_state.game_active = False
 if 'game_over' not in st.session_state: st.session_state.game_over = False
+if 'first_roll_made' not in st.session_state: st.session_state.first_roll_made = False
 if 'final_results' not in st.session_state: st.session_state.final_results = {}
-if 'dice' not in st.session_state: st.session_state.dice = [random.randint(1, 6) for _ in range(10)]
+if 'dice' not in st.session_state: st.session_state.dice = [0] * 10
 if 'trickA_indices' not in st.session_state: st.session_state.trickA_indices = []
 if 'trickB_indices' not in st.session_state: st.session_state.trickB_indices = []
 if 'rolls_left' not in st.session_state: st.session_state.rolls_left = 3
 if 'current_player_idx' not in st.session_state: st.session_state.current_player_idx = 0
 if 'used_categories' not in st.session_state: st.session_state.used_categories = {}
 
-# --- 4. NAVIGATION LOGIC ---
+# --- 5. NAVIGATION LOGIC ---
 
 if st.session_state.game_over:
     st.balloons()
@@ -83,9 +123,10 @@ elif not st.session_state.game_active:
             st.session_state.master_scores = pd.DataFrame(0, index=rows, columns=selected)
             st.session_state.trick_scores = pd.DataFrame(False, index=["Low Straight", "High Straight", "5 of a Kind"], columns=selected)
             st.session_state.game_active = True
+            st.session_state.first_roll_made = False
             st.rerun()
 
-# SHOW GAMEPLAY
+# --- 6. SHOW GAMEPLAY ---
 if st.session_state.game_active and not st.session_state.game_over:
     current_p = st.session_state.players[st.session_state.current_player_idx]
     turn_num = (len(st.session_state.used_categories[current_p]) // 2) + 1
@@ -98,21 +139,31 @@ if st.session_state.game_active and not st.session_state.game_over:
         for i in range(10):
             if i not in locked: st.session_state.dice[i] = random.randint(1, 6)
         st.session_state.rolls_left -= 1
+        st.session_state.first_roll_made = True
         st.rerun()
+
+    # Dice Faces Mapping
+    dice_faces = {0: "?", 1: "⚀", 2: "⚁", 3: "⚂", 4: "⚃", 5: "⚄", 6: "⚅"}
 
     d_cols = st.columns(10)
     for i in range(10):
         with d_cols[i]:
             inA, inB = i in st.session_state.trickA_indices, i in st.session_state.trickB_indices
-            st.button(f"{st.session_state.dice[i]}", key=f"v_{i}", disabled=True, use_container_width=True, type="primary" if (inA or inB) else "secondary")
+            is_held = inA or inB
+            
+            # Show dots only if rolled
+            label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
+            
+            st.button(label, key=f"v_{i}", disabled=True, type="primary" if is_held else "secondary")
+            
             c1, c2 = st.columns(2)
-            if c1.button("A", key=f"tA_{i}", type="primary" if inA else "secondary"):
+            if c1.button("A", key=f"tA_{i}", disabled=not st.session_state.first_roll_made):
                 if inA: st.session_state.trickA_indices.remove(i)
                 else: 
                     if inB: st.session_state.trickB_indices.remove(i)
                     st.session_state.trickA_indices.append(i)
                 st.rerun()
-            if c2.button("B", key=f"tB_{i}", type="primary" if inB else "secondary"):
+            if c2.button("B", key=f"tB_{i}", disabled=not st.session_state.first_roll_made):
                 if inB: st.session_state.trickB_indices.remove(i)
                 else:
                     if inA: st.session_state.trickA_indices.remove(i)
@@ -125,14 +176,11 @@ if st.session_state.game_active and not st.session_state.game_over:
     tB_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickB_indices])
     
     def get_opts(dice, player):
-        # 1s through 6s are the base options
         opts = ["1s", "2s", "3s", "4s", "5s", "6s"]
-        
         counts = Counter(dice)
-        # Sort counts by frequency (largest to smallest)
         sorted_counts = sorted(counts.values(), reverse=True)
         
-        # STRICT FULL HOUSE CHECK
+        # FULL HOUSE CHECK
         if len(sorted_counts) == 2:
             if sorted_counts[0] >= 3 and sorted_counts[1] >= 2:
                 opts.append("Full House")
@@ -140,10 +188,8 @@ if st.session_state.game_active and not st.session_state.game_over:
             opts.append("Full House")
             
         # STRAIGHTS
-        if dice == [1, 2, 3, 4, 5]: 
-            opts.append("Low Straight")
-        if dice == [2, 3, 4, 5, 6]: 
-            opts.append("High Straight")
+        if dice == [1, 2, 3, 4, 5]: opts.append("Low Straight")
+        if dice == [2, 3, 4, 5, 6]: opts.append("High Straight")
             
         # 5 OF A KIND
         if len(sorted_counts) == 1 and sorted_counts[0] == 5:
@@ -154,12 +200,12 @@ if st.session_state.game_active and not st.session_state.game_over:
     # --- UI DISPLAY ---
     ca, cb = st.columns(2)
     with ca:
-        st.markdown(f"### ✨ Trick A ({len(tA_vals)}/5): `{tA_vals}`")
+        st.markdown(f"### ✨ Trick A ({len(tA_vals)}/5)")
         options_a = get_opts(tA_vals, current_p)
         sel_a = st.selectbox("Assign Trick A to:", options_a, key="sA") if len(tA_vals) == 5 else None
         
     with cb:
-        st.markdown(f"### ✨ Trick B ({len(tB_vals)}/5): `{tB_vals}`")
+        st.markdown(f"### ✨ Trick B ({len(tB_vals)}/5)")
         options_b = get_opts(tB_vals, current_p)
         if sel_a and sel_a in options_b:
             options_b.remove(sel_a)
@@ -178,7 +224,8 @@ if st.session_state.game_active and not st.session_state.game_over:
                 st.session_state.master_scores.at[s, current_p] = calculate_score(v, s)
             st.session_state.used_categories[current_p].append(s)
         
-        st.session_state.dice = [random.randint(1, 6) for _ in range(10)]
+        st.session_state.dice = [0] * 10
+        st.session_state.first_roll_made = False
         st.session_state.trickA_indices, st.session_state.trickB_indices = [], []
         st.session_state.rolls_left = 3
         st.session_state.current_player_idx = (st.session_state.current_player_idx + 1) % len(st.session_state.players)
@@ -197,7 +244,7 @@ if st.session_state.game_active and not st.session_state.game_over:
         save_data(stats)
         st.rerun()
 
-# --- 5. PERMANENT SCOREBOARD ---
+# --- 7. PERMANENT SCOREBOARD ---
 if st.session_state.game_active or st.session_state.game_over:
     if "master_scores" in st.session_state:
         st.divider()
