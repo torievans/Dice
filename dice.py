@@ -174,7 +174,8 @@ if st.session_state.game_active and not st.session_state.game_over:
         st.session_state.first_roll_made = True
         st.rerun()
 
-    # Dice Faces Mapping
+    # --- DICE DISPLAY ---
+    # This dictionary must be aligned with the code above it
     dice_faces = {0: "?", 1: "⚀", 2: "⚁", 3: "⚂", 4: "⚃", 5: "⚄", 6: "⚅"}
 
     d_cols = st.columns(10)
@@ -183,11 +184,15 @@ if st.session_state.game_active and not st.session_state.game_over:
             inA, inB = i in st.session_state.trickA_indices, i in st.session_state.trickB_indices
             is_held = inA or inB
             
-            # Show dots only if rolled
-            label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
+            # Use dots if rolled, otherwise show "?"
+            val = st.session_state.dice[i]
+            label = dice_faces[val] if st.session_state.first_roll_made else "?"
             
+            # The CSS we added makes 'primary' (held) look grey 
+            # and 'secondary' (available) look black/transparent
             st.button(label, key=f"v_{i}", disabled=True, type="primary" if is_held else "secondary")
             
+            # Assignment buttons (A/B)
             c1, c2 = st.columns(2)
             if c1.button("A", key=f"tA_{i}", disabled=not st.session_state.first_roll_made):
                 if inA: st.session_state.trickA_indices.remove(i)
@@ -201,80 +206,6 @@ if st.session_state.game_active and not st.session_state.game_over:
                     if inA: st.session_state.trickA_indices.remove(i)
                     st.session_state.trickB_indices.append(i)
                 st.rerun()
-
-    # --- TRICK LOGIC ---
-    st.divider()
-    tA_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickA_indices])
-    tB_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickB_indices])
-    
-    def get_opts(dice, player):
-        opts = ["1s", "2s", "3s", "4s", "5s", "6s"]
-        counts = Counter(dice)
-        sorted_counts = sorted(counts.values(), reverse=True)
-        
-        # FULL HOUSE CHECK
-        if len(sorted_counts) == 2:
-            if sorted_counts[0] >= 3 and sorted_counts[1] >= 2:
-                opts.append("Full House")
-        elif len(sorted_counts) == 1 and sorted_counts[0] == 5:
-            opts.append("Full House")
-            
-        # STRAIGHTS
-        if dice == [1, 2, 3, 4, 5]: opts.append("Low Straight")
-        if dice == [2, 3, 4, 5, 6]: opts.append("High Straight")
-            
-        # 5 OF A KIND
-        if len(sorted_counts) == 1 and sorted_counts[0] == 5:
-            opts.append("5 of a Kind")
-        
-        return [o for o in opts if o not in st.session_state.used_categories[player]]
-
-    # --- UI DISPLAY ---
-    ca, cb = st.columns(2)
-    with ca:
-        st.markdown(f"### ✨ Trick A ({len(tA_vals)}/5)")
-        options_a = get_opts(tA_vals, current_p)
-        sel_a = st.selectbox("Assign Trick A to:", options_a, key="sA") if len(tA_vals) == 5 else None
-        
-    with cb:
-        st.markdown(f"### ✨ Trick B ({len(tB_vals)}/5)")
-        options_b = get_opts(tB_vals, current_p)
-        if sel_a and sel_a in options_b:
-            options_b.remove(sel_a)
-        sel_b = st.selectbox("Assign Trick B to:", options_b, key="sB") if len(tB_vals) == 5 else None
-
-    # TURN ACTIONS
-    st.divider()
-    col_end, col_finish = st.columns(2)
-    can_end = (len(tA_vals) == 5 and len(tB_vals) == 5 and sel_a and sel_b)
-
-    if col_end.button("✅ Confirm & Next Player", use_container_width=True, disabled=not can_end, type="primary"):
-        for s, v in [(sel_a, tA_vals), (sel_b, tB_vals)]:
-            if s in ["Low Straight", "High Straight", "5 of a Kind"]:
-                st.session_state.trick_scores.at[s, current_p] = True
-            else:
-                st.session_state.master_scores.at[s, current_p] = calculate_score(v, s)
-            st.session_state.used_categories[current_p].append(s)
-        
-        st.session_state.dice = [0] * 10
-        st.session_state.first_roll_made = False
-        st.session_state.trickA_indices, st.session_state.trickB_indices = [], []
-        st.session_state.rolls_left = 3
-        st.session_state.current_player_idx = (st.session_state.current_player_idx + 1) % len(st.session_state.players)
-        st.rerun()
-
-    if col_finish.button("🏁 Finish Game & Show Results", use_container_width=True):
-        final = {}
-        for p in st.session_state.players:
-            total = st.session_state.master_scores[p].sum()
-            if not st.session_state.trick_scores.at["Low Straight", p]: total += 15
-            if not st.session_state.trick_scores.at["High Straight", p]: total += 20
-            if not st.session_state.trick_scores.at["5 of a Kind", p]: total += 30
-            final[p] = total
-        st.session_state.final_results = final
-        st.session_state.game_over = True
-        save_data(stats)
-        st.rerun()
 
 # --- 7. PERMANENT SCOREBOARD ---
 if st.session_state.game_active or st.session_state.game_over:
