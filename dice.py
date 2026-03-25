@@ -81,7 +81,7 @@ st.markdown("""
 
 # ... inside your gameplay loop ...
 
-    # Dice Faces Mapping
+# Dice Faces Mapping
     dice_faces = {0: "?", 1: "⚀", 2: "⚁", 3: "⚂", 4: "⚃", 5: "⚄", 6: "⚅"}
 
     d_cols = st.columns(10)
