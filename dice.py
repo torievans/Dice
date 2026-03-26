@@ -1,5 +1,4 @@
 import streamlit as st
-import pd # If this causes an error, change to: import pandas as pd
 import pandas as pd
 import json
 import os
@@ -17,11 +16,9 @@ def calculate_score(dice, category):
         return sum(1 for d in dice if d != target) * target
     
     if category == "Full House":
-        # Identify the triple and the pair from the 5 dice
         sorted_items = sorted(counts.items(), key=lambda x: (x[1], x[0]), reverse=True)
         three_val = sorted_items[0][0]
         two_val = sorted_items[1][0] if len(sorted_items) > 1 else three_val
-        # Penalty calculation: Distance from 6-6-6 5-5
         return ((6 - three_val) * 3) + ((5 - two_val) * 2)
     return 0 
 
@@ -41,39 +38,40 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. THE "MEGA DICE" CSS ---
+# --- 3. THE "PIPS ONLY" CSS ---
 st.markdown("""
     <style>
-    /* Force the dice buttons to be massive squares */
+    /* 1. Target the dice buttons to remove the box entirely */
     div[data-testid="stColumn"] > div > div > button {
-        height: 120px !important;
+        height: 150px !important;
         width: 120px !important;
-        background-color: white !important;
-        border: 2px solid #333 !important;
-        border-radius: 15px !important;
+        background-color: transparent !important;
+        background: none !important;
+        border: none !important;
+        box-shadow: none !important;
         padding: 0 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
     }
 
-    /* Make the dots inside the massive buttons huge */
+    /* 2. Make the dots (pips) twice as big (from 80px to 160px) */
     div[data-testid="stColumn"] button p {
-        font-size: 80px !important;
+        font-size: 160px !important;
         line-height: 1 !important;
         color: black !important;
+        margin: 0 !important;
     }
 
-    /* Visual change for 'Held' dice (assigned to A or B) */
+    /* 3. Visual change for 'Held' dice (Grey pips instead of dark box) */
     div[data-testid="stColumn"] button[kind="primary"] {
-        background-color: #333 !important;
-        border-color: #000 !important;
+        background-color: transparent !important;
     }
     div[data-testid="stColumn"] button[kind="primary"] p {
         color: #d3d3d3 !important;
     }
 
-    /* RESTORE A/B BUTTONS: Prevent them from becoming giant */
+    /* 4. RESTORE A/B BUTTONS: Keep these as small functional boxes */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
         height: 35px !important;
         width: 100% !important;
@@ -138,7 +136,7 @@ if st.session_state.game_active and not st.session_state.game_over:
         st.session_state.first_roll_made = True
         st.rerun()
 
-    st.write(f"Rolls Left: {st.session_state.rolls_left}")
+    st.write(f"**Rolls Left:** {st.session_state.rolls_left}")
 
     dice_faces = {0: "?", 1: "⚀", 2: "⚁", 3: "⚂", 4: "⚃", 5: "⚄", 6: "⚅"}
     d_cols = st.columns(10)
@@ -148,7 +146,7 @@ if st.session_state.game_active and not st.session_state.game_over:
             is_held = inA or inB
             label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
             
-            # The Mega Button
+            # This is the dice button, now styled as a "phantom" button showing only pips
             st.button(label, key=f"v_{i}", disabled=True, type="primary" if is_held else "secondary")
             
             c1, c2 = st.columns(2)
@@ -174,13 +172,10 @@ if st.session_state.game_active and not st.session_state.game_over:
         opts = ["1s", "2s", "3s", "4s", "5s", "6s"]
         counts = Counter(dice)
         sorted_counts = sorted(counts.values(), reverse=True)
-        # Full House Dropdown Check
         if (len(sorted_counts) == 2 and sorted_counts[0] >= 3 and sorted_counts[1] >= 2) or (len(sorted_counts) == 1 and sorted_counts[0] == 5):
             opts.append("Full House")
-        # Straight Checks
         if dice == [1, 2, 3, 4, 5]: opts.append("Low Straight")
         if dice == [2, 3, 4, 5, 6]: opts.append("High Straight")
-        # 5 of a Kind Check
         if len(sorted_counts) == 1 and sorted_counts[0] == 5: opts.append("5 of a Kind")
         return [o for o in opts if o not in st.session_state.used_categories[player]]
 
