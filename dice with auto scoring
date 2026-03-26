@@ -36,56 +36,27 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. BRUTE-FORCE CSS (PIPS ONLY, NO BOXES) ---
+# --- 3. THE "PIPS ONLY" STYLING ---
 st.markdown("""
     <style>
-    /* Force the Dice Row to be transparent and borderless */
-    div[data-testid="stColumn"] > div > div > button {
-        background-color: transparent !important;
-        background: transparent !important;
-        border: none !important;
-        outline: none !important;
-        box-shadow: none !important;
-        padding: 0 !important;
-        height: 100px !important;
-        width: 100px !important;
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
-    }
-
-    /* Target the actual Unicode characters (the dots) inside the button */
-    div[data-testid="stColumn"] button p {
-        font-size: 90px !important;
-        line-height: 1 !important;
-        margin: 0 !important;
+    /* Style the Markdown Dots */
+    .dice-pip {
+        font-size: 100px !important;
+        line-height: 1;
+        text-align: center;
+        display: block;
+        margin-bottom: -10px;
         transition: color 0.3s ease;
     }
+    .pip-available { color: #000000; }
+    .pip-held { color: #d3d3d3; }
 
-    /* Available Dice: Solid Black Dots */
-    div[data-testid="stColumn"] button[kind="secondary"] p {
-        color: #000000 !important;
-    }
-
-    /* Held Dice: Faded Grey Dots */
-    div[data-testid="stColumn"] button[kind="primary"] p {
-        color: #d3d3d3 !important;
-    }
-
-    /* FIX FOR A/B BUTTONS: Make sure they STAY as boxes */
+    /* Keep A/B Buttons looking like clean UI elements */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
         background-color: #f0f2f6 !important;
         border: 1px solid #d1d5db !important;
-        border-radius: 4px !important;
         height: 35px !important;
-        width: 100% !important;
-        box-shadow: 0px 1px 2px rgba(0,0,0,0.05) !important;
-    }
-    
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button p {
-        font-size: 16px !important;
-        color: black !important;
-        font-weight: normal !important;
+        border-radius: 6px !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -139,7 +110,6 @@ if st.session_state.game_active and not st.session_state.game_over:
     current_p = st.session_state.players[st.session_state.current_player_idx]
     turn_num = (len(st.session_state.used_categories[current_p]) // 2) + 1
     st.header(f"👤 {current_p}'s Turn [{turn_num}/5]")
-    st.subheader(f"Rolls Remaining: {st.session_state.rolls_left}")
     
     if st.button("🎲 ROLL DICE", use_container_width=True, type="primary", disabled=st.session_state.rolls_left == 0):
         locked = st.session_state.trickA_indices + st.session_state.trickB_indices
@@ -150,17 +120,21 @@ if st.session_state.game_active and not st.session_state.game_over:
         st.session_state.first_roll_made = True
         st.rerun()
 
+    st.write(f"**Rolls Left:** {st.session_state.rolls_left}")
+
     dice_faces = {0: "?", 1: "⚀", 2: "⚁", 3: "⚂", 4: "⚃", 5: "⚄", 6: "⚅"}
     d_cols = st.columns(10)
     for i in range(10):
         with d_cols[i]:
             inA, inB = i in st.session_state.trickA_indices, i in st.session_state.trickB_indices
             is_held = inA or inB
+            
+            # --- DISPLAY THE DOTS ---
             label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
+            pip_class = "pip-held" if is_held else "pip-available"
+            st.markdown(f"<span class='dice-pip {pip_class}'>{label}</span>", unsafe_allow_html=True)
             
-            # The CSS handles making this a floating pip
-            st.button(label, key=f"v_{i}", disabled=True, type="primary" if is_held else "secondary")
-            
+            # --- A/B BUTTONS ---
             c1, c2 = st.columns(2)
             if c1.button("A", key=f"tA_{i}", disabled=not st.session_state.first_roll_made):
                 if inA: st.session_state.trickA_indices.remove(i)
@@ -175,7 +149,7 @@ if st.session_state.game_active and not st.session_state.game_over:
                     st.session_state.trickB_indices.append(i)
                 st.rerun()
 
-    # --- 7. TRICK LOGIC ---
+    # --- 7. TRICK ALLOCATION ---
     st.divider()
     tA_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickA_indices])
     tB_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickB_indices])
@@ -197,16 +171,15 @@ if st.session_state.game_active and not st.session_state.game_over:
 
     ca, cb = st.columns(2)
     with ca:
-        st.markdown(f"### ✨ Trick A ({len(tA_vals)}/5)")
+        st.markdown(f"### Trick A ({len(tA_vals)}/5)")
         options_a = get_opts(tA_vals, current_p)
-        sel_a = st.selectbox("Assign Trick A to:", options_a, key="sA") if len(tA_vals) == 5 else None
+        sel_a = st.selectbox("Assign Trick A:", options_a, key="sA") if len(tA_vals) == 5 else None
     with cb:
-        st.markdown(f"### ✨ Trick B ({len(tB_vals)}/5)")
+        st.markdown(f"### Trick B ({len(tB_vals)}/5)")
         options_b = get_opts(tB_vals, current_p)
         if sel_a and sel_a in options_b: options_b.remove(sel_a)
-        sel_b = st.selectbox("Assign Trick B to:", options_b, key="sB") if len(tB_vals) == 5 else None
+        sel_b = st.selectbox("Assign Trick B:", options_b, key="sB") if len(tB_vals) == 5 else None
 
-    # TURN CONFIRMATION
     if st.button("✅ Confirm Turn", use_container_width=True, disabled=not (len(tA_vals) == 5 and len(tB_vals) == 5 and sel_a and sel_b), type="primary"):
         for s, v in [(sel_a, tA_vals), (sel_b, tB_vals)]:
             if s in ["Low Straight", "High Straight", "5 of a Kind"]:
