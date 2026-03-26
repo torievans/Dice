@@ -65,77 +65,53 @@ st.markdown("""
         color: white !important;
     }
 
-# --- 3. UPDATED STYLING (Classic Square Dice) ---
+# --- 3. THE "REAL DICE" STYLING ---
 st.markdown("""
     <style>
-    /* 1. Force the dice buttons into perfect white squares */
+    /* 1. This makes the DOTS (pips) massive */
+    div[data-testid="stColumn"] button p {
+        font-size: 70px !important; /* Adjust this to make dots bigger/smaller */
+        line-height: 1 !important;
+        display: block !important;
+    }
+
+    /* 2. This makes the WHITE BOX (the die) a perfect square */
     div[data-testid="stColumn"] > div > div > button {
         background-color: white !important;
         color: black !important;
-        border: 2px solid #333333 !important; /* Darker border for definition */
-        border-radius: 12px !important; /* Slightly rounded for the "dice" feel */
-        height: 85px !important;
-        width: 85px !important;
-        font-size: 60px !important; /* Large pips inside the box */
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
+        border: 2px solid #333 !important;
+        border-radius: 12px !important;
+        height: 100px !important;
+        width: 100px !important;
         padding: 0 !important;
-        box-shadow: 2px 2px 5px rgba(0,0,0,0.1) !important; /* Subtle shadow for depth */
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        box-shadow: 3px 3px 10px rgba(0,0,0,0.1) !important;
     }
 
-    /* 2. Style for 'Held' dice (Primary) */
-    /* When a die is assigned (A or B), it turns black with grey dots */
+    /* 3. Style for 'Held' dice (assigned to A or B) */
     div[data-testid="stColumn"] > div > div > button[kind="primary"] {
-        background-color: #222222 !important;
-        color: #bbbbbb !important;
-        border-color: #444444 !important;
+        background-color: #222 !important; /* Black die when held */
+        color: #ddd !important; /* Grey dots when held */
+        border-color: #000 !important;
     }
 
-    /* 3. Protect the A/B buttons (The toggles below the dice) */
+    /* 4. KEEP A/B BUTTONS NORMAL SIZE */
+    /* We use a different selector to ensure these stay as small clickable boxes */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
         height: 35px !important;
         width: 100% !important;
-        font-size: 16px !important;
         background-color: #f0f2f6 !important;
         border: 1px solid #d1d5db !important;
-        border-radius: 6px !important;
-        color: black !important;
+    }
+    
+    /* Ensure the A and B text stays small */
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button p {
+        font-size: 16px !important;
     }
     </style>
     """, unsafe_allow_html=True)
-
-# ... inside your gameplay loop ...
-
-    # --- DICE DISPLAY ---
-    dice_faces = {0: "?", 1: "⚀", 2: "⚁", 3: "⚂", 4: "⚃", 5: "⚄", 6: "⚅"}
-
-    d_cols = st.columns(10)
-    for i in range(10):
-        with d_cols[i]:
-            inA, inB = i in st.session_state.trickA_indices, i in st.session_state.trickB_indices
-            is_held = inA or inB
-            
-            # Show the pip if rolled
-            label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
-            
-            # This button is now styled as a square white die
-            st.button(label, key=f"v_{i}", disabled=True, type="primary" if is_held else "secondary")
-            
-            # Assignment buttons (A/B)
-            c1, c2 = st.columns(2)
-            if c1.button("A", key=f"tA_{i}", disabled=not st.session_state.first_roll_made):
-                if inA: st.session_state.trickA_indices.remove(i)
-                else: 
-                    if inB: st.session_state.trickB_indices.remove(i)
-                    st.session_state.trickA_indices.append(i)
-                st.rerun()
-            if c2.button("B", key=f"tB_{i}", disabled=not st.session_state.first_roll_made):
-                if inB: st.session_state.trickB_indices.remove(i)
-                else:
-                    if inA: st.session_state.trickA_indices.remove(i)
-                    st.session_state.trickB_indices.append(i)
-                st.rerun()
 
 # --- 4. INITIALIZE STATE ---
 if 'game_active' not in st.session_state: st.session_state.game_active = False
