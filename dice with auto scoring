@@ -36,79 +36,54 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. THE "BLOG LOOK" STYLING ---
-# Replicating the blue button theme and hover effects from the Medium article
+# --- 3. THE "PIPS ONLY" STYLING ---
 st.markdown("""
     <style>
-    /* 1. Main Dice Pips - Freestanding & Large */
-    div[data-testid="stHorizontalBlock"] div[data-testid="stColumn"] > div > div > button {
-        height: 90px !important;
-        width: 90px !important;
-        font-size: 80px !important;
-        background-color: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-    }
-    button[kind="secondary"] { color: #000000 !important; } /* Active Dice Black */
-    button[kind="primary"] { color: #bbbbbb !important; }   /* Held Dice Grey */
-
-    /* 2. Roll Button Styling (Blue-to-Green from Blog) */
-    div.stButton > button:first-child[kind="primary"] {
-        background-color: #0099ff !important;
-        color: white !important;
-        border-radius: 5px;
-        height: 3em;
-        font-weight: bold;
-    }
-    div.stButton > button:hover {
-        background-color: #1BAF14 !important; /* Green hover from blog */
-        color: white !important;
-    }
-
-# --- 3. THE "REAL DICE" STYLING ---
-st.markdown("""
-    <style>
-    /* 1. This makes the DOTS (pips) massive */
+    /* 1. This makes the DOTS (pips) massive and floating */
     div[data-testid="stColumn"] button p {
-        font-size: 70px !important; /* Adjust this to make dots bigger/smaller */
+        font-size: 85px !important; /* Huge dots */
         line-height: 1 !important;
         display: block !important;
+        transition: transform 0.2s; /* Subtle pop effect */
     }
 
-    /* 2. This makes the WHITE BOX (the die) a perfect square */
+    /* 2. REMOVE THE BOX: Make the button container invisible */
     div[data-testid="stColumn"] > div > div > button {
-        background-color: white !important;
-        color: black !important;
-        border: 2px solid #333 !important;
-        border-radius: 12px !important;
+        background-color: transparent !important; /* No white box */
+        background: none !important;
+        border: none !important; /* No outline */
+        box-shadow: none !important; /* No shadow */
+        padding: 0 !important;
         height: 100px !important;
         width: 100px !important;
-        padding: 0 !important;
         display: flex !important;
         justify-content: center !important;
         align-items: center !important;
-        box-shadow: 3px 3px 10px rgba(0,0,0,0.1) !important;
     }
 
-    /* 3. Style for 'Held' dice (assigned to A or B) */
+    /* 3. Style for 'Available' dots (Black) */
+    div[data-testid="stColumn"] > div > div > button[kind="secondary"] {
+        color: #000000 !important;
+    }
+
+    /* 4. Style for 'Held' dots (Light Grey) */
+    /* This gives visual feedback that they are assigned to A or B */
     div[data-testid="stColumn"] > div > div > button[kind="primary"] {
-        background-color: #222 !important; /* Black die when held */
-        color: #ddd !important; /* Grey dots when held */
-        border-color: #000 !important;
+        color: #cccccc !important;
     }
 
-    /* 4. KEEP A/B BUTTONS NORMAL SIZE */
-    /* We use a different selector to ensure these stay as small clickable boxes */
+    /* 5. KEEP A/B BUTTONS AS SMALL BOXES */
+    /* We want these to still look like clickable buttons */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
         height: 35px !important;
-        width: 100% !important;
         background-color: #f0f2f6 !important;
         border: 1px solid #d1d5db !important;
+        border-radius: 4px !important;
     }
     
-    /* Ensure the A and B text stays small */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button p {
         font-size: 16px !important;
+        color: black !important;
     }
     </style>
     """, unsafe_allow_html=True)
