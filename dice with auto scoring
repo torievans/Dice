@@ -65,36 +65,42 @@ st.markdown("""
         color: white !important;
     }
 
-# --- 3. UPDATED STYLING (Big & Freestanding Dice) ---
+# --- 3. UPDATED STYLING (Classic Square Dice) ---
 st.markdown("""
     <style>
-    /* Targeting the dice buttons specifically to remove the "box" */
-    div[data-testid="stHorizontalBlock"] div[data-testid="stColumn"] > div > div > button {
-        height: 100px !important;  /* Taller to accommodate larger dice */
-        width: 100px !important;
-        font-size: 90px !important; /* MUCH larger dice pips */
-        background-color: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
+    /* 1. Force the dice buttons into perfect white squares */
+    div[data-testid="stColumn"] > div > div > button {
+        background-color: white !important;
         color: black !important;
+        border: 2px solid #333333 !important; /* Darker border for definition */
+        border-radius: 12px !important; /* Slightly rounded for the "dice" feel */
+        height: 85px !important;
+        width: 85px !important;
+        font-size: 60px !important; /* Large pips inside the box */
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+        padding: 0 !important;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.1) !important; /* Subtle shadow for depth */
     }
 
-    /* Keep the A/B buttons as small, functional boxes */
+    /* 2. Style for 'Held' dice (Primary) */
+    /* When a die is assigned (A or B), it turns black with grey dots */
+    div[data-testid="stColumn"] > div > div > button[kind="primary"] {
+        background-color: #222222 !important;
+        color: #bbbbbb !important;
+        border-color: #444444 !important;
+    }
+
+    /* 3. Protect the A/B buttons (The toggles below the dice) */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
         height: 35px !important;
         width: 100% !important;
         font-size: 16px !important;
         background-color: #f0f2f6 !important;
         border: 1px solid #d1d5db !important;
-        border-radius: 8px !important;
-    }
-
-    /* Change color for 'Held' dice (Primary) */
-    button[kind="primary"] {
-        color: #bbbbbb !important; /* Grey indicates it's locked into a trick */
+        border-radius: 6px !important;
+        color: black !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -113,10 +119,10 @@ st.markdown("""
             # Show the pip if rolled
             label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
             
-            # This button now acts as a freestanding icon thanks to the CSS above
+            # This button is now styled as a square white die
             st.button(label, key=f"v_{i}", disabled=True, type="primary" if is_held else "secondary")
             
-            # Tiny A/B selectors underneath
+            # Assignment buttons (A/B)
             c1, c2 = st.columns(2)
             if c1.button("A", key=f"tA_{i}", disabled=not st.session_state.first_roll_made):
                 if inA: st.session_state.trickA_indices.remove(i)
