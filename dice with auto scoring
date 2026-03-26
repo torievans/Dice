@@ -39,24 +39,24 @@ stats = load_data()
 # --- 3. THE "PIPS ONLY" STYLING ---
 st.markdown("""
     <style>
-    /* Style the Markdown Dots */
+    /* This creates the huge dots without any button box */
     .dice-pip {
         font-size: 100px !important;
         line-height: 1;
         text-align: center;
         display: block;
-        margin-bottom: -10px;
-        transition: color 0.3s ease;
+        margin-bottom: 5px;
     }
     .pip-available { color: #000000; }
     .pip-held { color: #d3d3d3; }
 
-    /* Keep A/B Buttons looking like clean UI elements */
+    /* Keep A/B Buttons looking like small UI tools */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
         background-color: #f0f2f6 !important;
         border: 1px solid #d1d5db !important;
-        height: 35px !important;
-        border-radius: 6px !important;
+        height: 32px !important;
+        border-radius: 4px !important;
+        font-size: 14px !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -77,7 +77,7 @@ if st.session_state.game_over:
     st.title("🏆 Final Standings")
     sorted_results = sorted(st.session_state.final_results.items(), key=lambda x: x[1])
     winner_name, winner_score = sorted_results[0]
-    st.success(f"### The Winner is {winner_name} with {winner_score} points!")
+    st.success(f"### Winner: {winner_name} with {winner_score} points!")
     res_df = pd.DataFrame(sorted_results, columns=['Player', 'Final Score'])
     st.table(res_df.set_index('Player'))
     if st.button("🔄 Start New Game", use_container_width=True):
@@ -114,14 +114,14 @@ if st.session_state.game_active and not st.session_state.game_over:
     if st.button("🎲 ROLL DICE", use_container_width=True, type="primary", disabled=st.session_state.rolls_left == 0):
         locked = st.session_state.trickA_indices + st.session_state.trickB_indices
         for i in range(10):
-            if i not in locked:
-                st.session_state.dice[i] = random.randint(1, 6)
+            if i not in locked: st.session_state.dice[i] = random.randint(1, 6)
         st.session_state.rolls_left -= 1
         st.session_state.first_roll_made = True
         st.rerun()
 
     st.write(f"**Rolls Left:** {st.session_state.rolls_left}")
 
+    # --- THE FLOATING DICE DISPLAY ---
     dice_faces = {0: "?", 1: "⚀", 2: "⚁", 3: "⚂", 4: "⚃", 5: "⚄", 6: "⚅"}
     d_cols = st.columns(10)
     for i in range(10):
@@ -129,12 +129,12 @@ if st.session_state.game_active and not st.session_state.game_over:
             inA, inB = i in st.session_state.trickA_indices, i in st.session_state.trickB_indices
             is_held = inA or inB
             
-            # --- DISPLAY THE DOTS ---
+            # Huge pips as Markdown
             label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
-            pip_class = "pip-held" if is_held else "pip-available"
-            st.markdown(f"<span class='dice-pip {pip_class}'>{label}</span>", unsafe_allow_html=True)
+            pip_color = "pip-held" if is_held else "pip-available"
+            st.markdown(f"<span class='dice-pip {pip_color}'>{label}</span>", unsafe_allow_html=True)
             
-            # --- A/B BUTTONS ---
+            # Tiny A/B Toggles
             c1, c2 = st.columns(2)
             if c1.button("A", key=f"tA_{i}", disabled=not st.session_state.first_roll_made):
                 if inA: st.session_state.trickA_indices.remove(i)
@@ -158,9 +158,8 @@ if st.session_state.game_active and not st.session_state.game_over:
         opts = ["1s", "2s", "3s", "4s", "5s", "6s"]
         counts = Counter(dice)
         sorted_counts = sorted(counts.values(), reverse=True)
-        if len(sorted_counts) == 2:
-            if sorted_counts[0] >= 3 and sorted_counts[1] >= 2:
-                opts.append("Full House")
+        if len(sorted_counts) == 2 and sorted_counts[0] >= 3 and sorted_counts[1] >= 2:
+            opts.append("Full House")
         elif len(sorted_counts) == 1 and sorted_counts[0] == 5:
             opts.append("Full House")
         if dice == [1, 2, 3, 4, 5]: opts.append("Low Straight")
@@ -172,21 +171,26 @@ if st.session_state.game_active and not st.session_state.game_over:
     ca, cb = st.columns(2)
     with ca:
         st.markdown(f"### Trick A ({len(tA_vals)}/5)")
-        options_a = get_opts(tA_vals, current_p)
-        sel_a = st.selectbox("Assign Trick A:", options_a, key="sA") if len(tA_vals) == 5 else None
+        opts_a = get_opts(tA_vals, current_p)
+        sel_a = st.selectbox("Assign Trick A:", opts_a, key="sA") if len(tA_vals) == 5 else None
     with cb:
         st.markdown(f"### Trick B ({len(tB_vals)}/5)")
-        options_b = get_opts(tB_vals, current_p)
-        if sel_a and sel_a in options_b: options_b.remove(sel_a)
-        sel_b = st.selectbox("Assign Trick B:", options_b, key="sB") if len(tB_vals) == 5 else None
+        opts_b = get_opts(tB_vals, current_p)
+        if sel_a and sel_a in opts_b: opts_b.remove(sel_a)
+        sel_b = st.selectbox("Assign Trick B:", opts_b, key="sB") if len(tB_vals) == 5 else None
 
-    if st.button("✅ Confirm Turn", use_container_width=True, disabled=not (len(tA_vals) == 5 and len(tB_vals) == 5 and sel_a and sel_b), type="primary"):
+    # --- 8. TURN CONFIRMATION & RESULTS ---
+    st.divider()
+    col_confirm, col_finish = st.columns(2)
+
+    if col_confirm.button("✅ Confirm Turn", use_container_width=True, disabled=not (sel_a and sel_b), type="primary"):
         for s, v in [(sel_a, tA_vals), (sel_b, tB_vals)]:
             if s in ["Low Straight", "High Straight", "5 of a Kind"]:
                 st.session_state.trick_scores.at[s, current_p] = True
             else:
                 st.session_state.master_scores.at[s, current_p] = calculate_score(v, s)
             st.session_state.used_categories[current_p].append(s)
+        
         st.session_state.dice = [0] * 10
         st.session_state.first_roll_made = False
         st.session_state.trickA_indices, st.session_state.trickB_indices = [], []
@@ -194,9 +198,22 @@ if st.session_state.game_active and not st.session_state.game_over:
         st.session_state.current_player_idx = (st.session_state.current_player_idx + 1) % len(st.session_state.players)
         st.rerun()
 
-# --- 8. SCOREBOARD ---
-if st.session_state.game_active:
+    if col_finish.button("🏁 Finish Game", use_container_width=True):
+        final = {}
+        for p in st.session_state.players:
+            total = st.session_state.master_scores[p].sum()
+            if not st.session_state.trick_scores.at["Low Straight", p]: total += 15
+            if not st.session_state.trick_scores.at["High Straight", p]: total += 20
+            if not st.session_state.trick_scores.at["5 of a Kind", p]: total += 30
+            final[p] = total
+        st.session_state.final_results = final
+        st.session_state.game_over = True
+        save_data(stats)
+        st.rerun()
+
+# --- SCOREBOARD (ALWAYS VISIBLE) ---
+if st.session_state.game_active or st.session_state.game_over:
     st.divider()
     st.subheader("📊 Scorecard")
-    st.data_editor(st.session_state.master_scores, use_container_width=True, disabled=True, key="m_v")
-    st.data_editor(st.session_state.trick_scores, use_container_width=True, disabled=True, key="t_v")
+    st.data_editor(st.session_state.master_scores, use_container_width=True, disabled=True)
+    st.data_editor(st.session_state.trick_scores, use_container_width=True, disabled=True)
