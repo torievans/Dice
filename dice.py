@@ -39,7 +39,7 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. THE "RIGID GRID" ALIGNMENT CSS ---
+# --- 3. THE "VISIBLE BANKS" CSS ---
 st.markdown("""
     <style>
     /* 1. Force White Page Background */
@@ -47,27 +47,7 @@ st.markdown("""
         background-color: white !important;
     }
 
-    /* 2. THE MASTER GRID FIX */
-    /* This forces the 10 columns to be exactly the same width with no hidden padding */
-    div[data-testid="stHorizontalBlock"] {
-        display: grid !important;
-        grid-template-columns: repeat(10, 1fr) !important;
-        gap: 0px !important;
-        width: 100% !important;
-        justify-items: center !important; /* Centers everything in the grid cell */
-    }
-
-    /* Target the columns to remove any Streamlit default margins */
-    div[data-testid="stColumn"] {
-        width: 130px !important; /* Slightly wider than the 120px die */
-        padding: 0 !important;
-        margin: 0 !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-    }
-
-    /* 3. Mega Dice Styling */
+    /* 2. Mega Dice Styling */
     div[data-testid="stColumn"] button {
         height: 150px !important;
         width: 120px !important;
@@ -75,7 +55,6 @@ st.markdown("""
         border: 2px solid #eeeeee !important;
         border-radius: 15px !important;
         opacity: 1 !important;
-        margin-bottom: 5px !important;
     }
 
     div[data-testid="stColumn"] button p {
@@ -83,61 +62,54 @@ st.markdown("""
         line-height: 1 !important;
         color: black !important;
         margin: 0 !important;
+        opacity: 1 !important;
     }
 
-    /* 4. THE BUTTON ALIGNMENT FIX (A/B ROW) */
-    /* This targets the container for A and B buttons */
-    div[data-testid="stColumn"] div[data-testid="stHorizontalBlock"] {
-        display: flex !important;
-        flex-direction: row !important;
-        width: 120px !important;      /* Lock width to match die */
-        justify-content: center !important;
-        gap: 4px !important;
-        margin: 0 auto !important;
-        padding: 0 !important;
+    /* Held Dice (Greyed out) */
+    div[data-testid="stColumn"] button[kind="primary"] {
+        background-color: #f8f9fa !important;
+        border: 2px solid #cccccc !important;
+    }
+    div[data-testid="stColumn"] button[kind="primary"] p {
+        color: #999999 !important;
     }
 
-    /* Ensure the sub-columns for A and B don't add their own padding */
-    div[data-testid="stColumn"] div[data-testid="stHorizontalBlock"] > div {
-        flex: 0 0 55px !important; /* Fixed width */
-        width: 55px !important;
-        padding: 0 !important;
-        margin: 0 !important;
-    }
-
-    div[data-testid="stHorizontalBlock"] button {
+    /* 3. Small A/B Buttons */
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
         height: 35px !important;
         width: 100% !important;
         background-color: #f0f2f6 !important;
         border: 1px solid #d1d5db !important;
-        border-radius: 6px !important;
-        padding: 0 !important;
     }
-
-    div[data-testid="stHorizontalBlock"] button p {
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button p {
         font-size: 16px !important;
         color: black !important;
         font-weight: bold !important;
     }
     
     /* Red Selected Buttons */
-    div[data-testid="stHorizontalBlock"] button[kind="primary"] {
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] {
         background-color: #ff4b4b !important;
-        border: 1px solid #d33c3c !important;
     }
-    div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
         color: white !important;
     }
 
-    /* 5. Bank Headers */
+    /* 4. THE TRICK BANK HEADERS (The Fix) */
     .bank-header {
-        background-color: #262730 !important;
+        background-color: #262730 !important; /* Dark Slate */
         color: white !important;
         padding: 10px 20px !important;
         border-radius: 10px !important;
         margin-bottom: 10px !important;
         font-weight: bold !important;
         text-align: center !important;
+    }
+    
+    /* Ensure the labels and dropdowns below the banks are visible */
+    label[data-testid="stWidgetLabel"] p {
+        color: black !important;
+        font-weight: bold !important;
     }
     </style>
     """, unsafe_allow_html=True)
