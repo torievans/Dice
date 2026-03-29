@@ -1,4 +1,9 @@
-# --- 3. UPDATED CSS (Pips & Centralization) ---
+import streamlit as st
+
+# --- 1. PAGE CONFIG ---
+st.set_page_config(layout="wide")
+
+# --- 2. UPDATED CSS (Pips & Centralization) ---
 st.markdown("""
     <style>
     /* 1. Target the DOTS (pips) inside the massive buttons */
@@ -8,7 +13,7 @@ st.markdown("""
         color: black !important;
     }
 
-    /* 2. Target the button box (The outline in your screenshot) */
+    /* 2. Target the button box (The outline) */
     div[data-testid="stColumn"] > div > div > button {
         height: 120px !important;
         width: 120px !important;
@@ -30,32 +35,50 @@ st.markdown("""
         color: #d3d3d3 !important;
     }
 
-    /* 4. PROTECT THE A/B BUTTONS: Make sure they don't inherit 'giant' size */
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
-        height: 35px !important;
-        width: 100% !important;
-        font-size: 16px !important;
-        background-color: #f0f2f6 !important;
-        border: 1px solid #d1d5db !important;
-        border-radius: 6px !important;
-    }
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button p {
-        font-size: 16px !important;
-        color: black !important;
+    /* 4. PROTECT THE UI BUTTONS: Make sure regular buttons don't turn into giant dice */
+    /* We target buttons NOT inside the dice columns specifically */
+    div[data-testid="stHeader"] button, 
+    div[data-testid="stSidebar"] button {
+        height: auto !important;
+        width: auto !important;
     }
 
     /* 5. === CENTRALIZATION LOGIC === */
-    /* Target the container for the 10 columns and center it */
-    [data-testid="stHorizontalBlock"] {
-        display: flex !important;
-        justify-content: center !important; /* Move to the center horizontally */
-        width: 100% !important;
+    /* This centers the entire block of columns on the page */
+    div[data-testid="stHorizontalBlock"] {
+        justify-content: center !important;
     }
-
-    /* Force the individual 10 columns to be narrow (tightening the grid) */
-    [data-testid="stHorizontalBlock"] .st-b5.st-bd {
-        min-width: 130px !important; /* Width just wide enough for the 120px die */
-        max-width: 130px !important;
+    
+    /* Ensure the columns don't stretch too wide, keeping the dice tight */
+    div[data-testid="stColumn"] {
+        flex: 0 1 130px !important;
+        min-width: 130px !important;
     }
     </style>
     """, unsafe_allow_html=True)
+
+# --- 3. APP LOGIC / GRID ---
+st.title("🎲 Tenzi Dice Roller")
+
+# Create 10 columns for the dice
+cols = st.columns(10)
+
+# Example state: let's pretend some are held (primary) and some are rolling (secondary)
+for i, col in enumerate(cols):
+    with col:
+        # We use a simple unicode dot for the 'pip'
+        # In a real app, you'd use st.session_state to track which are 'Held'
+        is_held = i % 3 == 0  # Just for demonstration
+        
+        button_type = "primary" if is_held else "secondary"
+        
+        if st.button("●", key=f"die_{i}", type=button_type):
+            pass 
+
+st.divider()
+
+# Controls area (Small buttons)
+c1, c2, c3 = st.columns([1,1,1])
+with c2:
+    if st.button("Roll All Dice", use_container_width=True):
+        st.toast("Rolling...")
