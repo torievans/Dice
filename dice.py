@@ -39,7 +39,7 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. UPDATED CSS (Tight Alignment Fix) ---
+# --- 3. UPDATED CSS (Force Side-by-Side) ---
 st.markdown("""
     <style>
     /* 1. Force White Page Background */
@@ -66,18 +66,22 @@ st.markdown("""
         opacity: 1 !important;
     }
 
-    /* 3. THE TIGHT ALIGNMENT FIX */
-    /* Target the row holding the A/B buttons and shrink it */
+    /* 3. THE SIDE-BY-SIDE ALIGNMENT FIX */
+    /* Target the horizontal block that contains the A and B columns */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] {
-        width: 120px !important; /* Force the container to match the die */
-        gap: 4px !important; /* Tiny gap between A and B */
+        width: 120px !important; /* Match the die width */
+        display: flex !important; /* Force flexbox */
+        flex-direction: row !important; /* Force horizontal alignment */
+        flex-wrap: nowrap !important; /* Prevent jumping to the next line */
+        justify-content: space-between !important;
+        gap: 4px !important;
+        margin: 0 auto !important;
     }
 
-    /* Target the individual columns for A and B to stop them from stretching */
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] div[data-testid="stColumn"] {
-        flex: 0 0 58px !important; /* Do not grow, do not shrink, stay 58px wide */
-        min-width: 58px !important;
-        max-width: 58px !important;
+    /* Target the individual button wrappers */
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] > div {
+        width: 58px !important; /* Fixed width for each button slot */
+        flex: 0 0 58px !important;
     }
 
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
