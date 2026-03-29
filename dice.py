@@ -43,6 +43,7 @@ stats = load_data()
 # --- 3. THE "ALL WHITE" OVERRIDE CSS ---
 st.markdown("""
     <style>
+    /* 1. GLOBAL WHITE THEME */
     .stApp, .stDataFrame, div[data-testid="stColumn"], div[data-testid="stHorizontalBlock"] {
         background-color: white !important;
         color: black !important;
@@ -51,7 +52,33 @@ st.markdown("""
         color: black !important;
     }
 
-    /* MEGA DICE STYLING - Targeted specifically to the gameplay columns */
+    /* 2. BUTTON VISIBILITY FIX (Red with White Text) */
+    /* This targets "Create Profile", "Delete", "Start Game", and "Roll" */
+    button {
+        color: black !important; /* Default for secondary buttons */
+    }
+    
+    /* Target Primary buttons (Start, Roll, Confirm) */
+    button[kind="primary"], button[data-testid="baseButton-primary"] {
+        background-color: #ff4b4b !important;
+        color: white !important;
+        border: none !important;
+    }
+    
+    /* Target the Create/Delete buttons specifically to make them Red too */
+    button[data-testid="baseButton-secondary"] {
+        background-color: #ff4b4b !important;
+        color: white !important;
+        border: none !important;
+    }
+
+    /* Force the text inside ALL red buttons to be white */
+    button[kind="primary"] p, button[data-testid="baseButton-secondary"] p {
+        color: white !important;
+        font-weight: bold !important;
+    }
+
+    /* 3. MEGA DICE STYLING (Only for the dice) */
     .dice-tray div[data-testid="stColumn"] > div > div > button {
         height: 150px !important;
         width: 120px !important;
@@ -64,7 +91,7 @@ st.markdown("""
         color: black !important;
     }
 
-    /* Small A/B Buttons (Under Dice) */
+    /* 4. A/B BUTTONS (Under Dice) */
     .dice-tray div[data-testid="stHorizontalBlock"] button {
         height: 35px !important;
         background-color: #f0f2f6 !important;
@@ -73,25 +100,9 @@ st.markdown("""
     .dice-tray div[data-testid="stHorizontalBlock"] button p {
         font-size: 16px !important;
         color: black !important;
-        font-weight: bold !important;
-    }
-    .dice-tray div[data-testid="stHorizontalBlock"] button[kind="primary"] {
-        background-color: #ff4b4b !important;
-    }
-    .dice-tray div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
-        color: white !important;
     }
 
-    /* RESET FOR SETUP BUTTONS (Create Profile / Start Game) */
-    /* This stops them from becoming 160px tall */
-    div[data-testid="stSidebar"] button, 
-    div[data-testid="stVerticalBlock"] > div > div > div > button:not([key*="v_"]) {
-        height: auto !important;
-        width: auto !important;
-        padding: 10px 20px !important;
-    }
-    button[kind="primary"] p { color: white !important; }
-
+    /* 5. BANK HEADERS */
     .bank-header {
         background-color: #f8f9fa !important;
         color: black !important;
