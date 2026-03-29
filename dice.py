@@ -37,10 +37,9 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. THE "SPECIFICITY" OVERRIDE CSS ---
+# --- 3. THE "ALL WHITE" OVERRIDE CSS ---
 st.markdown("""
     <style>
-    /* 1. Global Background */
     .stApp, .stDataFrame, div[data-testid="stColumn"], div[data-testid="stHorizontalBlock"] {
         background-color: white !important;
         color: black !important;
@@ -48,64 +47,72 @@ st.markdown("""
     h1, h2, h3, h4, p, span, label, div[data-testid="stMarkdownContainer"] p {
         color: black !important;
     }
-    .stDataFrame thead tr th { background-color: #f8f9fa !important; color: black !important; }
-    .stDataFrame tbody tr td { background-color: white !important; color: black !important; }
+    .stDataFrame thead tr th {
+        background-color: #f8f9fa !important;
+        color: black !important;
+    }
+    .stDataFrame tbody tr td {
+        background-color: white !important;
+        color: black !important;
+    }
 
-    /* 2. MEGA DICE BASE STYLING (Target keys starting with v_) */
-    button[key^="v_"] {
+    /* MEGA DICE STYLING */
+    div[data-testid="stColumn"] > div > div > button {
         height: 150px !important;
         width: 120px !important;
         background-color: white !important;
         border: 2px solid #eeeeee !important;
         border-radius: 15px !important;
     }
-    button[key^="v_"] p {
+    div[data-testid="stColumn"] button p {
         font-size: 160px !important;
         color: black !important;
     }
 
-    /* 3. THE FIX: HELD DICE (Grey Out Logic) */
-    /* Only apply grey to primary state if it's a die (v_) */
-    button[key^="v_"][kind="primary"] {
+    /* HELD DICE FUNCTIONALITY (Now Grey) */
+    div[data-testid="stColumn"] button[kind="primary"] {
         background-color: #f8f9fa !important;
         border: 2px solid #cccccc !important;
     }
-    button[key^="v_"][kind="primary"] p {
-        color: #bbbbbb !important; /* This turns the Pip Grey */
+    div[data-testid="stColumn"] button[kind="primary"] p {
+        color: #999999 !important; /* Greyed out pips */
     }
 
-    /* 4. A/B BUTTONS (Red when selected) */
-    button[key^="tA_"], button[key^="tB_"] {
+    /* Small A/B Buttons */
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
         height: 35px !important;
         background-color: #f0f2f6 !important;
         border: 1px solid #d1d5db !important;
     }
-    button[key^="tA_"] p, button[key^="tB_"] p {
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button p {
         font-size: 16px !important;
         color: black !important;
         font-weight: bold !important;
     }
-    /* Red state for selected A/B */
-    button[key^="tA_"][kind="primary"], button[key^="tB_"][kind="primary"] {
+    
+    /* Red Selected A/B Buttons */
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] {
         background-color: #ff4b4b !important;
     }
-    button[key^="tA_"][kind="primary"] p, button[key^="tB_"][kind="primary"] p {
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
         color: white !important;
     }
 
-    /* 5. GENERAL ACTION BUTTONS (Start, Roll, Profile, Confirm) */
-    /* Normal height, Red background, White text */
-    button[kind="primary"]:not([key^="v_"]):not([key^="t"]),
+    /* Action Buttons (Start & Roll) */
+    button[kind="primary"]:not([key^="v_"]):not([key^="t"]) {
+        background-color: #ff4b4b !important;
+    }
+    button[kind="primary"]:not([key^="v_"]):not([key^="t"]) p {
+        color: white !important;
+    }
+
+    /* SPECIFIC FIX FOR CREATE PROFILE BUTTON */
     button[key="create_profile_btn"] {
         background-color: #ff4b4b !important;
         border: none !important;
-        height: auto !important;
-        width: auto !important;
     }
-    button[kind="primary"]:not([key^="v_"]):not([key^="t"]) p,
     button[key="create_profile_btn"] p {
         color: white !important;
-        font-size: 18px !important;
     }
 
     .bank-header {
@@ -130,7 +137,7 @@ if 'rolls_left' not in st.session_state: st.session_state.rolls_left = 3
 if 'current_player_idx' not in st.session_state: st.session_state.current_player_idx = 0
 if 'used_categories' not in st.session_state: st.session_state.used_categories = {}
 
-# --- 5. SETUP ---
+# --- 5. SETUP & PROFILE MANAGEMENT ---
 if not st.session_state.game_active and not st.session_state.game_over:
     st.title("🎲 Double Cameroon")
     col1, col2 = st.columns(2)
@@ -145,7 +152,7 @@ if not st.session_state.game_active and not st.session_state.game_over:
                 st.rerun()
     with col2:
         st.subheader("Start Game")
-        selected = st.multiselect("Select Players:", list(stats["Players"].keys()))
+        selected = st.multiselect("Select Players for this Match:", list(stats["Players"].keys()))
         if st.button("🚀 Start Game", type="primary") and selected:
             st.session_state.players = selected
             st.session_state.current_player_idx = 0
@@ -181,7 +188,6 @@ if st.session_state.game_active and not st.session_state.game_over:
             is_held = inA or inB
             label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
             
-            # GIANT DIE: marked primary if held. CSS will turn this grey.
             st.button(label, key=f"v_{i}", disabled=True, type="primary" if is_held else "secondary")
             
             c1, c2 = st.columns(2)
