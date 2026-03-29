@@ -28,7 +28,7 @@ def load_data():
     if os.path.exists(DB_FILE):
         try:
             with open(DB_FILE, "r") as f: return json.load(f)
-        except: return {"Players": {}}
+        except: return {}
     return {"Players": {}}
 
 def save_data(data):
@@ -92,15 +92,6 @@ st.markdown("""
         color: white !important;
     }
 
-    /* SPECIFIC FIX FOR CREATE PROFILE BUTTON */
-    button[key="create_profile_btn"] {
-        background-color: #ff4b4b !important;
-        border: none !important;
-    }
-    button[key="create_profile_btn"] p {
-        color: white !important;
-    }
-
     .bank-header {
         background-color: #f8f9fa !important;
         color: black !important;
@@ -132,14 +123,20 @@ if not st.session_state.game_active and not st.session_state.game_over:
     with col1:
         st.subheader("Manage Profiles")
         new_player = st.text_input("New Player Name:")
-        # KEY ADDED HERE
-        if st.button("➕ Create Profile", key="create_profile_btn") and new_player:
+        if st.button("➕ Create Profile") and new_player:
             if new_player not in stats["Players"]:
                 stats["Players"][new_player] = {"high_score": 0}
                 save_data(stats)
                 st.success(f"Added {new_player}!")
                 st.rerun()
         
+        delete_player = st.selectbox("Delete a Profile:", [""] + list(stats["Players"].keys()))
+        if st.button("🗑️ Delete Selected") and delete_player:
+            del stats["Players"][delete_player]
+            save_data(stats)
+            st.warning(f"Deleted {delete_player}")
+            st.rerun()
+
     with col2:
         st.subheader("Start Game")
         selected = st.multiselect("Select Players for this Match:", list(stats["Players"].keys()))
@@ -161,8 +158,7 @@ if st.session_state.game_active and not st.session_state.game_over:
     if st.button("🎲 ROLL DICE", use_container_width=True, type="primary", disabled=st.session_state.rolls_left == 0):
         locked = st.session_state.trickA_indices + st.session_state.trickB_indices
         for i in range(10):
-            if i not in locked:
-                st.session_state.dice[i] = random.randint(1, 6)
+            if i not in locked: st.session_state.dice[i] = random.randint(1, 6)
         st.session_state.rolls_left -= 1
         st.session_state.first_roll_made = True
         st.rerun()
@@ -218,10 +214,7 @@ if st.session_state.game_active and not st.session_state.game_over:
         st.markdown(f"<div class='bank-header'>Trick B ({len(tB_vals)}/5) &nbsp;&nbsp; {tB_vals if tB_vals else ''}</div>", unsafe_allow_html=True)
         sel_b = st.selectbox("Assign B:", get_opts(tB_vals, current_p), key="sB") if len(tB_vals) == 5 else None
 
-    ready_to_confirm = len(tA_vals) == 5 and len(tB_vals) == 5
-    confirm_label = "✅ Confirm Turn" if ready_to_confirm else "Assign all dice to confirm"
-
-    if st.button(confirm_label, use_container_width=True, disabled=not (sel_a and sel_b), type="primary"):
+    if st.button("✅ Confirm Turn", use_container_width=True, disabled=not (sel_a and sel_b), type="primary"):
         for s, v in [(sel_a, tA_vals), (sel_b, tB_vals)]:
             if s in ["Low Straight", "High Straight", "5 of a Kind"]:
                 st.session_state.trick_scores.at[s, current_p] = True
@@ -239,3 +232,4 @@ if st.session_state.game_active:
     st.subheader("📊 Scorecard")
     st.data_editor(st.session_state.master_scores, use_container_width=True, disabled=True)
     st.data_editor(st.session_state.trick_scores, use_container_width=True, disabled=True)
+    
