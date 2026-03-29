@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import json
@@ -29,7 +28,7 @@ def load_data():
     if os.path.exists(DB_FILE):
         try:
             with open(DB_FILE, "r") as f: return json.load(f)
-        except: return {}
+        except: return {"Players": {}}
     return {"Players": {}}
 
 def save_data(data):
@@ -58,27 +57,16 @@ st.markdown("""
     }
 
     /* MEGA DICE STYLING */
-    div[data-testid="stColumn"] > div > div > button[key^="v_"] {
+    div[data-testid="stColumn"] > div > div > button {
         height: 150px !important;
         width: 120px !important;
         background-color: white !important;
         border: 2px solid #eeeeee !important;
         border-radius: 15px !important;
     }
-    
-    /* Dice Face Text */
-    div[data-testid="stColumn"] button[key^="v_"] p {
+    div[data-testid="stColumn"] button p {
         font-size: 160px !important;
         color: black !important;
-    }
-
-    /* THE FIX: Held Dice (Primary) styling */
-    div[data-testid="stColumn"] button[key^="v_"][kind="primary"] {
-        background-color: #f8f9fa !important;
-        border: 2px solid #cccccc !important;
-    }
-    div[data-testid="stColumn"] button[key^="v_"][kind="primary"] p {
-        color: #bbbbbb !important; /* This makes the pip grey */
     }
 
     /* Small A/B Buttons */
@@ -92,8 +80,6 @@ st.markdown("""
         color: black !important;
         font-weight: bold !important;
     }
-    
-    /* Red Selected A/B Buttons */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] {
         background-color: #ff4b4b !important;
     }
@@ -101,11 +87,17 @@ st.markdown("""
         color: white !important;
     }
 
-    /* Primary Action Buttons (Start & Roll) */
-    button[kind="primary"]:not([key^="v_"]):not([key^="t"]) {
-        background-color: #ff4b4b !important;
+    /* BUTTON TEXT VISIBILITY (Start & Roll) */
+    button[kind="primary"] p {
+        color: white !important;
     }
-    button[kind="primary"]:not([key^="v_"]):not([key^="t"]) p {
+
+    /* SPECIFIC FIX FOR CREATE PROFILE BUTTON */
+    button[key="create_profile_btn"] {
+        background-color: #ff4b4b !important;
+        border: none !important;
+    }
+    button[key="create_profile_btn"] p {
         color: white !important;
     }
 
@@ -140,20 +132,14 @@ if not st.session_state.game_active and not st.session_state.game_over:
     with col1:
         st.subheader("Manage Profiles")
         new_player = st.text_input("New Player Name:")
-        if st.button("➕ Create Profile") and new_player:
+        # KEY ADDED HERE
+        if st.button("➕ Create Profile", key="create_profile_btn") and new_player:
             if new_player not in stats["Players"]:
                 stats["Players"][new_player] = {"high_score": 0}
                 save_data(stats)
                 st.success(f"Added {new_player}!")
                 st.rerun()
         
-        delete_player = st.selectbox("Delete a Profile:", [""] + list(stats["Players"].keys()))
-        if st.button("🗑️ Delete Selected") and delete_player:
-            del stats["Players"][delete_player]
-            save_data(stats)
-            st.warning(f"Deleted {delete_player}")
-            st.rerun()
-
     with col2:
         st.subheader("Start Game")
         selected = st.multiselect("Select Players for this Match:", list(stats["Players"].keys()))
@@ -190,8 +176,6 @@ if st.session_state.game_active and not st.session_state.game_over:
         with d_cols[i]:
             inA, inB = i in st.session_state.trickA_indices, i in st.session_state.trickB_indices
             label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
-            
-            # Dice logic: marked as 'primary' if held in A or B
             st.button(label, key=f"v_{i}", disabled=True, type="primary" if (inA or inB) else "secondary")
             
             c1, c2 = st.columns(2)
