@@ -39,81 +39,77 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. UPDATED CSS (Fixed Visibility and Scaling) ---
+# --- 3. THE "VISIBLE BANKS" CSS ---
 st.markdown("""
     <style>
-    /* 1. Force White Background */
+    /* 1. Force White Page Background */
     .stApp {
         background-color: white !important;
     }
 
-    /* 2. Target the DICE BUTTONS (The 10 large boxes) */
-    /* We use the data-testid for the column and button to be very specific */
+    /* 2. Mega Dice Styling */
     div[data-testid="stColumn"] button {
         height: 150px !important;
         width: 120px !important;
         background-color: white !important;
         border: 2px solid #eeeeee !important;
         border-radius: 15px !important;
-        padding: 0 !important;
-        opacity: 1 !important; /* Ensures disabled buttons aren't washed out */
-    }
-
-    /* 3. MEGA PIPS (Targeting the text inside the dice buttons) */
-    /* This forces the pips to be black and massive 160px characters */
-    div[data-testid="stColumn"] button p {
-        font-size: 160px !important;
-        line-height: 1 !important;
-        color: black !important; /* Force pips to be visible */
-        margin: 0 !important;
-        display: block !important;
         opacity: 1 !important;
     }
 
-    /* 4. HELD DICE STATE (When assigned to A or B) */
-    /* When 'primary', we give it a light gray background to show it's held */
+    div[data-testid="stColumn"] button p {
+        font-size: 160px !important;
+        line-height: 1 !important;
+        color: black !important;
+        margin: 0 !important;
+        opacity: 1 !important;
+    }
+
+    /* Held Dice (Greyed out) */
     div[data-testid="stColumn"] button[kind="primary"] {
         background-color: #f8f9fa !important;
         border: 2px solid #cccccc !important;
     }
-    /* Optional: Make pips slightly lighter when held to show they are 'used' */
     div[data-testid="stColumn"] button[kind="primary"] p {
-        color: #666666 !important;
+        color: #999999 !important;
     }
 
-    /* 5. A/B BUTTONS (Keeping them small and functional) */
-    /* We target the buttons inside the nested columns specifically */
+    /* 3. Small A/B Buttons */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
         height: 35px !important;
         width: 100% !important;
         background-color: #f0f2f6 !important;
         border: 1px solid #d1d5db !important;
-        border-radius: 6px !important;
     }
-    
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button p {
         font-size: 16px !important;
         color: black !important;
         font-weight: bold !important;
     }
     
-    /* 6. RED SELECTED A/B BUTTONS */
+    /* Red Selected Buttons */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] {
         background-color: #ff4b4b !important;
-        border: 1px solid #d33c3c !important;
     }
-    
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
         color: white !important;
     }
 
-    /* 7. Layout Centralization */
-    .dice-tray {
-        display: flex !important;
-        justify-content: center !important;
-        width: 100% !important;
-        gap: 10px;
-        margin-bottom: 20px;
+    /* 4. THE TRICK BANK HEADERS (The Fix) */
+    .bank-header {
+        background-color: #262730 !important; /* Dark Slate */
+        color: white !important;
+        padding: 10px 20px !important;
+        border-radius: 10px !important;
+        margin-bottom: 10px !important;
+        font-weight: bold !important;
+        text-align: center !important;
+    }
+    
+    /* Ensure the labels and dropdowns below the banks are visible */
+    label[data-testid="stWidgetLabel"] p {
+        color: black !important;
+        font-weight: bold !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -212,36 +208,19 @@ if st.session_state.game_active and not st.session_state.game_over:
 
     # --- 7. SCORING ---
     st.divider()
-    # Adding reverse=True flips the list to High-to-Low
     tA_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickA_indices], reverse=True)
     tB_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickB_indices], reverse=True)
     
-    def get_opts(dice, player):
-        opts = ["1s", "2s", "3s", "4s", "5s", "6s"]
-        # We need a low-to-high version specifically for straight checks
-        check_dice = sorted(dice)
-        counts = Counter(dice)
-        sorted_counts = sorted(counts.values(), reverse=True)
-        
-        if (len(sorted_counts) == 2 and sorted_counts[0] >= 3 and sorted_counts[1] >= 2) or (len(sorted_counts) == 1 and sorted_counts[0] == 5):
-            opts.append("Full House")
-            
-        if check_dice == [1, 2, 3, 4, 5]: opts.append("Low Straight")
-        if check_dice == [2, 3, 4, 5, 6]: opts.append("High Straight")
-        
-        if len(sorted_counts) == 1 and sorted_counts[0] == 5: opts.append("5 of a Kind")
-        return [o for o in opts if o not in st.session_state.used_categories[player]]
-
     ca, cb = st.columns(2)
     with ca:
-        # Displaying the High-to-Low values in the header
-        st.markdown(f"### Trick A ({len(tA_vals)}/5) {tA_vals if tA_vals else ''}")
+        # Wrapped in a div with our new 'bank-header' class
+        st.markdown(f"<div class='bank-header'>Trick A ({len(tA_vals)}/5) &nbsp;&nbsp; {tA_vals if tA_vals else ''}</div>", unsafe_allow_html=True)
         sel_a = st.selectbox("Assign A:", get_opts(tA_vals, current_p), key="sA") if len(tA_vals) == 5 else None
     with cb:
-        # Displaying the High-to-Low values in the header
-        st.markdown(f"### Trick B ({len(tB_vals)}/5) {tB_vals if tB_vals else ''}")
+        # Wrapped in a div with our new 'bank-header' class
+        st.markdown(f"<div class='bank-header'>Trick B ({len(tB_vals)}/5) &nbsp;&nbsp; {tB_vals if tB_vals else ''}</div>", unsafe_allow_html=True)
         sel_b = st.selectbox("Assign B:", get_opts(tB_vals, current_p), key="sB") if len(tB_vals) == 5 else None
-
+        
 # --- 8. SCOREBOARD ---
 if st.session_state.game_active or st.session_state.game_over:
     st.divider()
