@@ -39,53 +39,50 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. UPDATED CSS (Fixed Button Font Sizes) ---
+# --- 3. UPDATED CSS (Fixed Visibility and Scaling) ---
 st.markdown("""
     <style>
-    /* 1. FORCE WHITE BACKGROUND */
+    /* 1. Force White Background */
     .stApp {
         background-color: white !important;
-        color: black !important;
-    }
-    
-    h1, h2, h3, label {
-        color: black !important;
     }
 
-    /* 2. DICE BUTTONS (The White Boxes) */
-    div[data-testid="stColumn"] > div > div > button {
+    /* 2. Target the DICE BUTTONS (The 10 large boxes) */
+    /* We use the data-testid for the column and button to be very specific */
+    div[data-testid="stColumn"] button {
         height: 150px !important;
         width: 120px !important;
         background-color: white !important;
         border: 2px solid #eeeeee !important;
-        box-shadow: none !important;
-        padding: 0 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
         border-radius: 15px !important;
+        padding: 0 !important;
+        opacity: 1 !important; /* Ensures disabled buttons aren't washed out */
     }
 
-    /* 3. MEGA PIPS (Targeting only the first row of buttons) */
-    /* We use 'height' as a selector to ensure we only hit the 150px dice buttons */
-    button[height="150px"] p, div[data-testid="stColumn"] > div > div > button p {
+    /* 3. MEGA PIPS (Targeting the text inside the dice buttons) */
+    /* This forces the pips to be black and massive 160px characters */
+    div[data-testid="stColumn"] button p {
         font-size: 160px !important;
         line-height: 1 !important;
-        color: black !important;
+        color: black !important; /* Force pips to be visible */
         margin: 0 !important;
+        display: block !important;
+        opacity: 1 !important;
     }
 
-    /* 4. HELD DICE STATE */
+    /* 4. HELD DICE STATE (When assigned to A or B) */
+    /* When 'primary', we give it a light gray background to show it's held */
     div[data-testid="stColumn"] button[kind="primary"] {
-        background-color: #f0f0f0 !important;
+        background-color: #f8f9fa !important;
         border: 2px solid #cccccc !important;
     }
+    /* Optional: Make pips slightly lighter when held to show they are 'used' */
     div[data-testid="stColumn"] button[kind="primary"] p {
-        color: #999999 !important;
+        color: #666666 !important;
     }
 
-    /* 5. === FIXED A/B BUTTONS === */
-    /* Target the small buttons specifically to prevent giant text */
+    /* 5. A/B BUTTONS (Keeping them small and functional) */
+    /* We target the buttons inside the nested columns specifically */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
         height: 35px !important;
         width: 100% !important;
@@ -94,14 +91,13 @@ st.markdown("""
         border-radius: 6px !important;
     }
     
-    /* This is the critical fix: Resetting the 'p' tag inside small buttons */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button p {
-        font-size: 16px !important; /* Back to normal size */
-        font-weight: bold !important;
+        font-size: 16px !important;
         color: black !important;
+        font-weight: bold !important;
     }
     
-    /* 6. RED SELECTED LOGIC */
+    /* 6. RED SELECTED A/B BUTTONS */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] {
         background-color: #ff4b4b !important;
         border: 1px solid #d33c3c !important;
@@ -111,7 +107,7 @@ st.markdown("""
         color: white !important;
     }
 
-    /* 7. CENTRALIZATION */
+    /* 7. Layout Centralization */
     .dice-tray {
         display: flex !important;
         justify-content: center !important;
