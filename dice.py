@@ -27,8 +27,11 @@ DB_FILE = "cameroon_stats.json"
 def load_data():
     if os.path.exists(DB_FILE):
         try:
-            with open(DB_FILE, "r") as f: return json.load(f)
-        except: return {}
+            with open(DB_FILE, "r") as f:
+                data = json.load(f)
+                if "Players" not in data: data = {"Players": {}}
+                return data
+        except: return {"Players": {}}
     return {"Players": {}}
 
 def save_data(data):
@@ -47,50 +50,47 @@ st.markdown("""
     h1, h2, h3, h4, p, span, label, div[data-testid="stMarkdownContainer"] p {
         color: black !important;
     }
-    .stDataFrame thead tr th {
-        background-color: #f8f9fa !important;
-        color: black !important;
-    }
-    .stDataFrame tbody tr td {
-        background-color: white !important;
-        color: black !important;
-    }
 
-    /* MEGA DICE STYLING */
-    div[data-testid="stColumn"] > div > div > button {
+    /* MEGA DICE STYLING - Targeted specifically to the gameplay columns */
+    .dice-tray div[data-testid="stColumn"] > div > div > button {
         height: 150px !important;
         width: 120px !important;
         background-color: white !important;
         border: 2px solid #eeeeee !important;
         border-radius: 15px !important;
     }
-    div[data-testid="stColumn"] button p {
+    .dice-tray div[data-testid="stColumn"] button p {
         font-size: 160px !important;
         color: black !important;
     }
 
-    /* Small A/B Buttons */
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
+    /* Small A/B Buttons (Under Dice) */
+    .dice-tray div[data-testid="stHorizontalBlock"] button {
         height: 35px !important;
         background-color: #f0f2f6 !important;
         border: 1px solid #d1d5db !important;
     }
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button p {
+    .dice-tray div[data-testid="stHorizontalBlock"] button p {
         font-size: 16px !important;
         color: black !important;
         font-weight: bold !important;
     }
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] {
+    .dice-tray div[data-testid="stHorizontalBlock"] button[kind="primary"] {
         background-color: #ff4b4b !important;
     }
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
+    .dice-tray div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
         color: white !important;
     }
 
-    /* BUTTON TEXT VISIBILITY (Start & Roll) */
-    button[kind="primary"] p {
-        color: white !important;
+    /* RESET FOR SETUP BUTTONS (Create Profile / Start Game) */
+    /* This stops them from becoming 160px tall */
+    div[data-testid="stSidebar"] button, 
+    div[data-testid="stVerticalBlock"] > div > div > div > button:not([key*="v_"]) {
+        height: auto !important;
+        width: auto !important;
+        padding: 10px 20px !important;
     }
+    button[kind="primary"] p { color: white !important; }
 
     .bank-header {
         background-color: #f8f9fa !important;
@@ -130,7 +130,8 @@ if not st.session_state.game_active and not st.session_state.game_over:
                 st.success(f"Added {new_player}!")
                 st.rerun()
         
-        delete_player = st.selectbox("Delete a Profile:", [""] + list(stats["Players"].keys()))
+        player_list = list(stats["Players"].keys())
+        delete_player = st.selectbox("Delete a Profile:", [""] + player_list)
         if st.button("🗑️ Delete Selected") and delete_player:
             del stats["Players"][delete_player]
             save_data(stats)
@@ -139,7 +140,7 @@ if not st.session_state.game_active and not st.session_state.game_over:
 
     with col2:
         st.subheader("Start Game")
-        selected = st.multiselect("Select Players for this Match:", list(stats["Players"].keys()))
+        selected = st.multiselect("Select Players:", player_list)
         if st.button("🚀 Start Game", type="primary") and selected:
             st.session_state.players = selected
             st.session_state.current_player_idx = 0
