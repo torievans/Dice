@@ -53,15 +53,13 @@ st.markdown("""
         color: black !important;
     }
 
-    /* 2. DATAFRAME / TABLE SPECIFIC OVERRIDES (The main fix) */
-    /* Target the table header background */
+    /* 2. DATAFRAME / TABLE SPECIFIC OVERRIDES */
     .stDataFrame thead tr th {
-        background-color: #f8f9fa !important; /* Very light grey header */
+        background-color: #f8f9fa !important;
         color: black !important;
         border-bottom: 2px solid #dee2e6 !important;
     }
     
-    /* Target all table cells (body) */
     .stDataFrame tbody tr td {
         background-color: white !important;
         color: black !important;
@@ -116,9 +114,17 @@ st.markdown("""
         color: white !important;
     }
 
-    /* 5. BANK HEADERS (Updated to look clean on white) */
+    /* 5. START BUTTON FIX: Force white text on the dark primary button */
+    button[kind="primaryFormSubmit"], button[data-testid="baseButton-primary"] {
+        color: white !important;
+    }
+    button[kind="primaryFormSubmit"] p, button[data-testid="baseButton-primary"] p {
+        color: white !important;
+    }
+
+    /* 6. BANK HEADERS */
     .bank-header {
-        background-color: #f8f9fa !important; /* Light slate on white */
+        background-color: #f8f9fa !important;
         color: black !important;
         padding: 10px 20px !important;
         border-radius: 10px !important;
@@ -136,6 +142,7 @@ st.markdown("""
     }
     </style>
     """, unsafe_allow_html=True)
+
 # --- 4. INITIALIZE STATE ---
 for key in ['game_active', 'game_over', 'first_roll_made']:
     if key not in st.session_state: st.session_state[key] = False
@@ -160,7 +167,7 @@ if st.session_state.game_over:
 elif not st.session_state.game_active:
     st.title("🎲 Double Cameroon")
     selected = st.multiselect("Select Players", list(stats.keys()))
-    if st.button("🚀 Start Game") and selected:
+    if st.button("🚀 Start Game", type="primary") and selected:
         st.session_state.players = selected
         st.session_state.current_player_idx = 0
         st.session_state.used_categories = {p: [] for p in selected}
