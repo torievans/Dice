@@ -37,10 +37,9 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. THE "SPECIFICITY" OVERRIDE CSS ---
+# --- 3. THE "ALL WHITE" OVERRIDE CSS ---
 st.markdown("""
     <style>
-    /* 1. Global Background */
     .stApp, .stDataFrame, div[data-testid="stColumn"], div[data-testid="stHorizontalBlock"] {
         background-color: white !important;
         color: black !important;
@@ -48,10 +47,16 @@ st.markdown("""
     h1, h2, h3, h4, p, span, label, div[data-testid="stMarkdownContainer"] p {
         color: black !important;
     }
-    .stDataFrame thead tr th { background-color: #f8f9fa !important; color: black !important; }
-    .stDataFrame tbody tr td { background-color: white !important; color: black !important; }
+    .stDataFrame thead tr th {
+        background-color: #f8f9fa !important;
+        color: black !important;
+    }
+    .stDataFrame tbody tr td {
+        background-color: white !important;
+        color: black !important;
+    }
 
-    /* 2. MEGA DICE BASE STYLING (v_ keys) */
+    /* MEGA DICE BASE STYLING */
     button[key^="v_"] {
         height: 150px !important;
         width: 120px !important;
@@ -64,17 +69,16 @@ st.markdown("""
         color: black !important;
     }
 
-    /* 3. THE FIX: HELD DICE (Grey Out Logic) */
-    /* Target primary state specifically for dice buttons */
+    /* HELD DICE (Grey Out Logic) */
     button[key^="v_"][kind="primary"] {
         background-color: #f8f9fa !important;
         border: 2px solid #cccccc !important;
     }
     button[key^="v_"][kind="primary"] p {
-        color: #bbbbbb !important; /* Forces Pip to Grey */
+        color: #bbbbbb !important;
     }
 
-    /* 4. A/B BUTTONS (Red when selected) */
+    /* Small A/B Buttons */
     button[key^="tA_"], button[key^="tB_"] {
         height: 35px !important;
         background-color: #f0f2f6 !important;
@@ -85,7 +89,8 @@ st.markdown("""
         color: black !important;
         font-weight: bold !important;
     }
-    /* Red state for A/B */
+    
+    /* Red Selected A/B Buttons */
     button[key^="tA_"][kind="primary"], button[key^="tB_"][kind="primary"] {
         background-color: #ff4b4b !important;
     }
@@ -93,19 +98,21 @@ st.markdown("""
         color: white !important;
     }
 
-    /* 5. GENERAL ACTION BUTTONS (Start, Roll, Profile, Confirm) */
-    /* Targets primary buttons that are NOT dice or A/B toggles */
-    button[kind="primary"]:not([key^="v_"]):not([key^="t"]),
+    /* General Action Buttons (Roll, Start, Confirm) */
+    button[kind="primary"]:not([key^="v_"]):not([key^="t"]) {
+        background-color: #ff4b4b !important;
+    }
+    button[kind="primary"]:not([key^="v_"]):not([key^="t"]) p {
+        color: white !important;
+    }
+
+    /* Specific Fix for Profile Button */
     button[key="create_profile_btn"] {
         background-color: #ff4b4b !important;
         border: none !important;
-        height: auto !important;
-        width: auto !important;
     }
-    button[kind="primary"]:not([key^="v_"]):not([key^="t"]) p,
     button[key="create_profile_btn"] p {
         color: white !important;
-        font-size: 18px !important;
     }
 
     .bank-header {
@@ -156,7 +163,7 @@ if not st.session_state.game_active and not st.session_state.game_over:
             st.session_state.game_active = True
             st.rerun()
 
-# --- 6. SHOW GAMEPLAY ---
+# --- 6. GAMEPLAY ---
 if st.session_state.game_active and not st.session_state.game_over:
     current_p = st.session_state.players[st.session_state.current_player_idx]
     st.header(f"👤 {current_p}'s Turn")
@@ -170,8 +177,6 @@ if st.session_state.game_active and not st.session_state.game_over:
         st.session_state.first_roll_made = True
         st.rerun()
 
-    st.write(f"**Rolls Left:** {st.session_state.rolls_left}")
-
     dice_faces = {0: "?", 1: "⚀", 2: "⚁", 3: "⚂", 4: "⚃", 5: "⚄", 6: "⚅"}
     st.markdown('<div class="dice-tray">', unsafe_allow_html=True)
     d_cols = st.columns(10)
@@ -180,7 +185,7 @@ if st.session_state.game_active and not st.session_state.game_over:
             inA, inB = i in st.session_state.trickA_indices, i in st.session_state.trickB_indices
             label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
             
-            # Dice: Primary if held (Greys out per CSS)
+            # GIANT DIE: Marked primary (grey) if in A or B
             st.button(label, key=f"v_{i}", disabled=True, type="primary" if (inA or inB) else "secondary")
             
             c1, c2 = st.columns(2)
