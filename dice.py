@@ -34,30 +34,26 @@ def load_data():
     return {}
 
 def save_data(data):
-    with open(DB_FILE, "w") as f: json.dump(data, f, indent=4)
+    with open(DB_FILE, "u") as f: # Use standard write mode
+        json.dump(data, f, indent=4)
 
 stats = load_data()
 
 # --- 3. THE "PIPS ONLY" CSS & WHITE BACKGROUND FORCE ---
 st.markdown("""
     <style>
-    /* 1. FORCE WHITE BACKGROUND & DARK TEXT */
     .stApp {
         background-color: white !important;
         color: black !important;
     }
-    
-    /* Ensure all markdown text and headers are visible on white */
     h1, h2, h3, p, span, label {
         color: black !important;
     }
-
-    /* 2. Dice buttons (Phantom look) */
     div[data-testid="stColumn"] > div > div > button {
         height: 150px !important;
         width: 120px !important;
-        background-color: white !important; /* White background for the die box */
-        border: 2px solid #eeeeee !important; /* Very light border so it's visible but clean */
+        background-color: white !important;
+        border: 2px solid #eeeeee !important;
         box-shadow: none !important;
         padding: 0 !important;
         display: flex !important;
@@ -65,16 +61,12 @@ st.markdown("""
         justify-content: center !important;
         border-radius: 15px !important;
     }
-
-    /* 3. Make the pips massive and Black */
     div[data-testid="stColumn"] button p {
         font-size: 160px !important;
         line-height: 1 !important;
         color: black !important;
         margin: 0 !important;
     }
-
-    /* 4. Visual change for 'Held' dice (Grey pips and dark box) */
     div[data-testid="stColumn"] button[kind="primary"] {
         background-color: #f0f0f0 !important;
         border: 2px solid #cccccc !important;
@@ -82,8 +74,6 @@ st.markdown("""
     div[data-testid="stColumn"] button[kind="primary"] p {
         color: #999999 !important;
     }
-
-    /* 5. RESTORE A/B BUTTONS: Small functional boxes */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
         height: 35px !important;
         width: 100% !important;
@@ -155,10 +145,8 @@ if st.session_state.game_active and not st.session_state.game_over:
     for i in range(10):
         with d_cols[i]:
             inA, inB = i in st.session_state.trickA_indices, i in st.session_state.trickB_indices
-            is_held = inA or inB
             label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
-            
-            st.button(label, key=f"v_{i}", disabled=True, type="primary" if is_held else "secondary")
+            st.button(label, key=f"v_{i}", disabled=True, type="primary" if (inA or inB) else "secondary")
             
             c1, c2 = st.columns(2)
             if c1.button("A", key=f"tA_{i}", disabled=not st.session_state.first_roll_made):
@@ -192,10 +180,12 @@ if st.session_state.game_active and not st.session_state.game_over:
 
     ca, cb = st.columns(2)
     with ca:
-        st.markdown(f"### Trick A ({len(tA_vals)}/5)")
+        # Display the dice values directly in the header
+        st.markdown(f"### Trick A ({len(tA_vals)}/5) {tA_vals if tA_vals else ''}")
         sel_a = st.selectbox("Assign A:", get_opts(tA_vals, current_p), key="sA") if len(tA_vals) == 5 else None
     with cb:
-        st.markdown(f"### Trick B ({len(tB_vals)}/5)")
+        # Display the dice values directly in the header
+        st.markdown(f"### Trick B ({len(tB_vals)}/5) {tB_vals if tB_vals else ''}")
         sel_b = st.selectbox("Assign B:", get_opts(tB_vals, current_p), key="sB") if len(tB_vals) == 5 else None
 
     if st.button("✅ Confirm Turn", use_container_width=True, disabled=not (sel_a and sel_b), type="primary"):
