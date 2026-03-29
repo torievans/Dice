@@ -69,6 +69,15 @@ st.markdown("""
         color: black !important;
     }
 
+    /* HELD DICE FUNCTIONALITY (The Grey Out) */
+    div[data-testid="stColumn"] button[kind="primary"] {
+        background-color: #f8f9fa !important;
+        border: 2px solid #cccccc !important;
+    }
+    div[data-testid="stColumn"] button[kind="primary"] p {
+        color: #999999 !important; /* Greyed out pips */
+    }
+
     /* Small A/B Buttons */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
         height: 35px !important;
@@ -80,6 +89,8 @@ st.markdown("""
         color: black !important;
         font-weight: bold !important;
     }
+    
+    /* Red Selected A/B Buttons */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] {
         background-color: #ff4b4b !important;
     }
@@ -87,8 +98,11 @@ st.markdown("""
         color: white !important;
     }
 
-    /* BUTTON TEXT VISIBILITY (Start & Roll) */
-    button[kind="primary"] p {
+    /* Action Buttons (Start & Roll) */
+    button[kind="primary"]:not([key^="v_"]):not([key^="t"]) {
+        background-color: #ff4b4b !important;
+    }
+    button[kind="primary"]:not([key^="v_"]):not([key^="t"]) p {
         color: white !important;
     }
 
@@ -126,20 +140,16 @@ if 'used_categories' not in st.session_state: st.session_state.used_categories =
 # --- 5. SETUP & PROFILE MANAGEMENT ---
 if not st.session_state.game_active and not st.session_state.game_over:
     st.title("🎲 Double Cameroon")
-    
     col1, col2 = st.columns(2)
-    
     with col1:
         st.subheader("Manage Profiles")
         new_player = st.text_input("New Player Name:")
-        # KEY ADDED HERE
         if st.button("➕ Create Profile", key="create_profile_btn") and new_player:
             if new_player not in stats["Players"]:
                 stats["Players"][new_player] = {"high_score": 0}
                 save_data(stats)
                 st.success(f"Added {new_player}!")
                 st.rerun()
-        
     with col2:
         st.subheader("Start Game")
         selected = st.multiselect("Select Players for this Match:", list(stats["Players"].keys()))
@@ -175,8 +185,11 @@ if st.session_state.game_active and not st.session_state.game_over:
     for i in range(10):
         with d_cols[i]:
             inA, inB = i in st.session_state.trickA_indices, i in st.session_state.trickB_indices
+            is_held = inA or inB
             label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
-            st.button(label, key=f"v_{i}", disabled=True, type="primary" if (inA or inB) else "secondary")
+            
+            # GIANT DIE: marked as 'primary' if held to trigger the grey CSS
+            st.button(label, key=f"v_{i}", disabled=True, type="primary" if is_held else "secondary")
             
             c1, c2 = st.columns(2)
             if c1.button("A", key=f"tA_{i}", disabled=not st.session_state.first_roll_made, type="primary" if inA else "secondary"):
@@ -239,3 +252,4 @@ if st.session_state.game_active:
     st.subheader("📊 Scorecard")
     st.data_editor(st.session_state.master_scores, use_container_width=True, disabled=True)
     st.data_editor(st.session_state.trick_scores, use_container_width=True, disabled=True)
+    
