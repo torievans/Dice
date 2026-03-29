@@ -80,15 +80,19 @@ st.markdown("""
         color: black !important;
         font-weight: bold !important;
     }
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] {
+    
+    /* RED BUTTON LOGIC (Primary buttons + Create Profile) */
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"],
+    button[kind="primary"],
+    button[key="create_btn"] {
         background-color: #ff4b4b !important;
+        border: none !important;
     }
+    
+    /* Force white text on all Red buttons */
+    button[kind="primary"] p, 
+    button[key="create_btn"] p,
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
-        color: white !important;
-    }
-
-    /* BUTTON TEXT VISIBILITY (Start & Roll) */
-    button[kind="primary"] p {
         color: white !important;
     }
 
@@ -123,7 +127,8 @@ if not st.session_state.game_active and not st.session_state.game_over:
     with col1:
         st.subheader("Manage Profiles")
         new_player = st.text_input("New Player Name:")
-        if st.button("➕ Create Profile") and new_player:
+        # Assigned 'create_btn' key here to match the CSS rule above
+        if st.button("➕ Create Profile", key="create_btn") and new_player:
             if new_player not in stats["Players"]:
                 stats["Players"][new_player] = {"high_score": 0}
                 save_data(stats)
