@@ -158,7 +158,8 @@ if st.session_state.game_active and not st.session_state.game_over:
     if st.button("🎲 ROLL DICE", use_container_width=True, type="primary", disabled=st.session_state.rolls_left == 0):
         locked = st.session_state.trickA_indices + st.session_state.trickB_indices
         for i in range(10):
-            if i not in locked: st.session_state.dice[i] = random.randint(1, 6)
+            if i not in locked:
+                st.session_state.dice[i] = random.randint(1, 6)
         st.session_state.rolls_left -= 1
         st.session_state.first_roll_made = True
         st.rerun()
@@ -214,7 +215,11 @@ if st.session_state.game_active and not st.session_state.game_over:
         st.markdown(f"<div class='bank-header'>Trick B ({len(tB_vals)}/5) &nbsp;&nbsp; {tB_vals if tB_vals else ''}</div>", unsafe_allow_html=True)
         sel_b = st.selectbox("Assign B:", get_opts(tB_vals, current_p), key="sB") if len(tB_vals) == 5 else None
 
-    if st.button("✅ Confirm Turn", use_container_width=True, disabled=not (sel_a and sel_b), type="primary"):
+    # Logic for conditional tick emoji and button label
+    ready_to_confirm = len(tA_vals) == 5 and len(tB_vals) == 5
+    confirm_label = "✅ Confirm Turn" if ready_to_confirm else "Assign all dice to confirm"
+
+    if st.button(confirm_label, use_container_width=True, disabled=not (sel_a and sel_b), type="primary"):
         for s, v in [(sel_a, tA_vals), (sel_b, tB_vals)]:
             if s in ["Low Straight", "High Straight", "5 of a Kind"]:
                 st.session_state.trick_scores.at[s, current_p] = True
