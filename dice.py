@@ -57,16 +57,27 @@ st.markdown("""
     }
 
     /* MEGA DICE STYLING */
-    div[data-testid="stColumn"] > div > div > button {
+    div[data-testid="stColumn"] > div > div > button[key^="v_"] {
         height: 150px !important;
         width: 120px !important;
         background-color: white !important;
         border: 2px solid #eeeeee !important;
         border-radius: 15px !important;
     }
-    div[data-testid="stColumn"] button p {
+    
+    /* Dice Face Text */
+    div[data-testid="stColumn"] button[key^="v_"] p {
         font-size: 160px !important;
         color: black !important;
+    }
+
+    /* THE FIX: Held Dice (Primary) styling */
+    div[data-testid="stColumn"] button[key^="v_"][kind="primary"] {
+        background-color: #f8f9fa !important;
+        border: 2px solid #cccccc !important;
+    }
+    div[data-testid="stColumn"] button[key^="v_"][kind="primary"] p {
+        color: #bbbbbb !important; /* This makes the pip grey */
     }
 
     /* Small A/B Buttons */
@@ -80,6 +91,8 @@ st.markdown("""
         color: black !important;
         font-weight: bold !important;
     }
+    
+    /* Red Selected A/B Buttons */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] {
         background-color: #ff4b4b !important;
     }
@@ -87,8 +100,11 @@ st.markdown("""
         color: white !important;
     }
 
-    /* BUTTON TEXT VISIBILITY (Start & Roll) */
-    button[kind="primary"] p {
+    /* Primary Action Buttons (Start & Roll) */
+    button[kind="primary"]:not([key^="v_"]):not([key^="t"]) {
+        background-color: #ff4b4b !important;
+    }
+    button[kind="primary"]:not([key^="v_"]):not([key^="t"]) p {
         color: white !important;
     }
 
@@ -173,6 +189,8 @@ if st.session_state.game_active and not st.session_state.game_over:
         with d_cols[i]:
             inA, inB = i in st.session_state.trickA_indices, i in st.session_state.trickB_indices
             label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
+            
+            # Dice logic: marked as 'primary' if held in A or B
             st.button(label, key=f"v_{i}", disabled=True, type="primary" if (inA or inB) else "secondary")
             
             c1, c2 = st.columns(2)
@@ -215,7 +233,6 @@ if st.session_state.game_active and not st.session_state.game_over:
         st.markdown(f"<div class='bank-header'>Trick B ({len(tB_vals)}/5) &nbsp;&nbsp; {tB_vals if tB_vals else ''}</div>", unsafe_allow_html=True)
         sel_b = st.selectbox("Assign B:", get_opts(tB_vals, current_p), key="sB") if len(tB_vals) == 5 else None
 
-    # Logic for conditional tick emoji and button label
     ready_to_confirm = len(tA_vals) == 5 and len(tB_vals) == 5
     confirm_label = "✅ Confirm Turn" if ready_to_confirm else "Assign all dice to confirm"
 
