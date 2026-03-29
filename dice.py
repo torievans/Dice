@@ -28,7 +28,7 @@ def load_data():
     if os.path.exists(DB_FILE):
         try:
             with open(DB_FILE, "r") as f: return json.load(f)
-        except: return {"Players": {}}
+        except: return {}
     return {"Players": {}}
 
 def save_data(data):
@@ -130,6 +130,13 @@ if not st.session_state.game_active and not st.session_state.game_over:
                 st.success(f"Added {new_player}!")
                 st.rerun()
         
+        delete_player = st.selectbox("Delete a Profile:", [""] + list(stats["Players"].keys()))
+        if st.button("🗑️ Delete Selected") and delete_player:
+            del stats["Players"][delete_player]
+            save_data(stats)
+            st.warning(f"Deleted {delete_player}")
+            st.rerun()
+
     with col2:
         st.subheader("Start Game")
         selected = st.multiselect("Select Players for this Match:", list(stats["Players"].keys()))
@@ -208,6 +215,7 @@ if st.session_state.game_active and not st.session_state.game_over:
         st.markdown(f"<div class='bank-header'>Trick B ({len(tB_vals)}/5) &nbsp;&nbsp; {tB_vals if tB_vals else ''}</div>", unsafe_allow_html=True)
         sel_b = st.selectbox("Assign B:", get_opts(tB_vals, current_p), key="sB") if len(tB_vals) == 5 else None
 
+    # Logic for conditional tick emoji and button label
     ready_to_confirm = len(tA_vals) == 5 and len(tB_vals) == 5
     confirm_label = "✅ Confirm Turn" if ready_to_confirm else "Assign all dice to confirm"
 
