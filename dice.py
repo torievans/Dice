@@ -40,37 +40,39 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. TARGETED CSS (Huge Dice, Small Setup Buttons) ---
+# --- 3. THE "ALL WHITE" OVERRIDE CSS ---
 st.markdown("""
     <style>
-    .stApp { background-color: white !important; }
-    h1, h2, h3, h4, p, span, label { color: black !important; }
+    .stApp, .stDataFrame, div[data-testid="stColumn"], div[data-testid="stHorizontalBlock"] {
+        background-color: white !important;
+        color: black !important;
+    }
+    h1, h2, h3, h4, p, span, label, div[data-testid="stMarkdownContainer"] p {
+        color: black !important;
+    }
+    .stDataFrame thead tr th {
+        background-color: #f8f9fa !important;
+        color: black !important;
+    }
+    .stDataFrame tbody tr td {
+        background-color: white !important;
+        color: black !important;
+    }
 
-    /* 1. MEGA DICE: Only applies inside the dice-tray div */
-    .dice-tray div[data-testid="stColumn"] button {
+    /* MEGA DICE STYLING - Targeted only to gameplay dice */
+    .dice-tray div[data-testid="stColumn"] > div > div > button {
         height: 150px !important;
         width: 120px !important;
         background-color: white !important;
         border: 2px solid #eeeeee !important;
         border-radius: 15px !important;
-        padding: 0 !important;
     }
     .dice-tray div[data-testid="stColumn"] button p {
-        font-size: 160px !important; /* THE BIG PIPS */
-        line-height: 1 !important;
+        font-size: 160px !important;
         color: black !important;
     }
 
-    /* 2. HELD DICE: Fades the pips when selected */
-    .dice-tray div[data-testid="stColumn"] button[kind="primary"] {
-        background-color: #f8f9fa !important;
-        border: 2px solid #cccccc !important;
-    }
-    .dice-tray div[data-testid="stColumn"] button[kind="primary"] p {
-        color: #999999 !important;
-    }
-
-    /* 3. A/B BUTTONS: Small and aligned */
+    /* Small A/B Buttons (Under Dice) */
     .dice-tray div[data-testid="stHorizontalBlock"] button {
         height: 35px !important;
         background-color: #f0f2f6 !important;
@@ -81,27 +83,27 @@ st.markdown("""
         color: black !important;
         font-weight: bold !important;
     }
-
-    /* 4. SETUP BUTTONS: Standard size for Create/Start Game */
-    div[data-testid="stVerticalBlock"] > div > div > div > button:not([key*="v_"]) {
+    
+    /* Ensure non-dice buttons (Start/Create) stay normal size */
+    button:not([key*="v_"]) {
         height: auto !important;
-        background-color: #ff4b4b !important;
-        color: white !important;
+        width: auto !important;
     }
-    div[data-testid="stVerticalBlock"] > div > div > div > button:not([key*="v_"]) p {
+    button[kind="primary"] p {
         color: white !important;
-        font-size: 18px !important;
+        font-size: 16px !important; /* Normal text size for action buttons */
     }
 
     .bank-header {
         background-color: #f8f9fa !important;
         color: black !important;
-        padding: 10px !important;
+        padding: 10px 20px !important;
         border-radius: 10px !important;
         text-align: center !important;
         border: 1px solid #dee2e6 !important;
     }
-    .dice-tray { display: flex !important; justify-content: center !important; width: 100% !important; margin-bottom: 20px; }
+    
+    .dice-tray { display: flex !important; justify-content: center !important; width: 100% !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -115,22 +117,27 @@ if 'rolls_left' not in st.session_state: st.session_state.rolls_left = 3
 if 'current_player_idx' not in st.session_state: st.session_state.current_player_idx = 0
 if 'used_categories' not in st.session_state: st.session_state.used_categories = {}
 
-# --- 5. SETUP SCREEN ---
+# --- 5. SETUP & PROFILE MANAGEMENT ---
 if not st.session_state.game_active and not st.session_state.game_over:
     st.title("🎲 Double Cameroon")
-    c1, c2 = st.columns(2)
-    with c1:
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
         st.subheader("Manage Profiles")
-        new_p = st.text_input("New Player Name:")
-        if st.button("➕ Create Profile") and new_p:
-            if new_p not in stats["Players"]:
-                stats["Players"][new_p] = {"high_score": 0}
+        new_player = st.text_input("New Player Name:")
+        if st.button("➕ Create Profile") and new_player:
+            if new_player not in stats["Players"]:
+                stats["Players"][new_player] = {"high_score": 0}
                 save_data(stats)
+                st.success(f"Added {new_player}!")
                 st.rerun()
-    with c2:
+
+    with col2:
         st.subheader("Start Game")
-        selected = st.multiselect("Select Players:", list(stats["Players"].keys()))
-        if st.button("🚀 Start Game") and selected:
+        player_list = list(stats["Players"].keys())
+        selected = st.multiselect("Select Players for this Match:", player_list)
+        if st.button("🚀 Start Game", type="primary") and selected:
             st.session_state.players = selected
             st.session_state.current_player_idx = 0
             st.session_state.used_categories = {p: [] for p in selected}
@@ -140,12 +147,12 @@ if not st.session_state.game_active and not st.session_state.game_over:
             st.session_state.game_active = True
             st.rerun()
 
-# --- 6. GAMEPLAY SCREEN ---
+# --- 6. SHOW GAMEPLAY ---
 if st.session_state.game_active and not st.session_state.game_over:
     current_p = st.session_state.players[st.session_state.current_player_idx]
     st.header(f"👤 {current_p}'s Turn")
     
-    if st.button("🎲 ROLL DICE", use_container_width=True, disabled=st.session_state.rolls_left == 0):
+    if st.button("🎲 ROLL DICE", use_container_width=True, type="primary", disabled=st.session_state.rolls_left == 0):
         locked = st.session_state.trickA_indices + st.session_state.trickB_indices
         for i in range(10):
             if i not in locked: st.session_state.dice[i] = random.randint(1, 6)
@@ -153,7 +160,11 @@ if st.session_state.game_active and not st.session_state.game_over:
         st.session_state.first_roll_made = True
         st.rerun()
 
+    st.write(f"**Rolls Left:** {st.session_state.rolls_left}")
+
     dice_faces = {0: "?", 1: "⚀", 2: "⚁", 3: "⚂", 4: "⚃", 5: "⚄", 6: "⚅"}
+    
+    # WRAP DICE IN TRAY TO TARGET CSS
     st.markdown('<div class="dice-tray">', unsafe_allow_html=True)
     d_cols = st.columns(10)
     for i in range(10):
@@ -202,7 +213,7 @@ if st.session_state.game_active and not st.session_state.game_over:
         st.markdown(f"<div class='bank-header'>Trick B ({len(tB_vals)}/5) &nbsp;&nbsp; {tB_vals if tB_vals else ''}</div>", unsafe_allow_html=True)
         sel_b = st.selectbox("Assign B:", get_opts(tB_vals, current_p), key="sB") if len(tB_vals) == 5 else None
 
-    if st.button("✅ Confirm Turn", use_container_width=True, disabled=not (sel_a and sel_b)):
+    if st.button("✅ Confirm Turn", use_container_width=True, disabled=not (sel_a and sel_b), type="primary"):
         for s, v in [(sel_a, tA_vals), (sel_b, tB_vals)]:
             if s in ["Low Straight", "High Straight", "5 of a Kind"]:
                 st.session_state.trick_scores.at[s, current_p] = True
@@ -214,6 +225,9 @@ if st.session_state.game_active and not st.session_state.game_over:
         st.session_state.current_player_idx = (st.session_state.current_player_idx + 1) % len(st.session_state.players)
         st.rerun()
 
+# --- 8. SCOREBOARD ---
+if st.session_state.game_active:
+    st.divider()
     st.subheader("📊 Scorecard")
     st.data_editor(st.session_state.master_scores, use_container_width=True, disabled=True)
     st.data_editor(st.session_state.trick_scores, use_container_width=True, disabled=True)
