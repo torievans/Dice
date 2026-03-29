@@ -39,7 +39,7 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. FINAL CENTER-STACK CSS ---
+# --- 3. THE NO-WRAP 10-COLUMN CSS ---
 st.markdown("""
     <style>
     /* 1. Force White Page Background */
@@ -47,17 +47,24 @@ st.markdown("""
         background-color: white !important;
     }
 
-    /* 2. CENTER THE COLUMN CONTENT */
-    /* This forces everything inside each of the 10 columns to stay in the middle */
-    div[data-testid="stColumn"] {
+    /* 2. FORCE 10 COLUMNS ON ONE LINE */
+    /* This targets the row holding the 10 dice and stops it from splitting */
+    div[data-testid="stHorizontalBlock"] {
         display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important; /* Forces vertical alignment */
-        justify-content: flex-start !important;
+        flex-wrap: nowrap !important; /* Forces all 10 to stay on one row */
+        justify-content: center !important;
         width: 100% !important;
     }
 
-    /* 3. Mega Dice Styling */
+    /* 3. CENTER CONTENT INSIDE EACH COLUMN */
+    div[data-testid="stColumn"] {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        min-width: 125px !important; /* Slightly wider than the die to prevent overlap */
+    }
+
+    /* 4. Mega Dice Styling */
     div[data-testid="stColumn"] button {
         height: 150px !important;
         width: 120px !important;
@@ -65,7 +72,7 @@ st.markdown("""
         border: 2px solid #eeeeee !important;
         border-radius: 15px !important;
         opacity: 1 !important;
-        margin: 0 auto 5px auto !important; /* Centers the die and adds bottom gap */
+        margin: 0 auto 5px auto !important;
         display: block !important;
     }
 
@@ -77,25 +84,21 @@ st.markdown("""
         opacity: 1 !important;
     }
 
-    /* 4. THE BUTTON ALIGNMENT FIX */
-    /* Target the container holding A and B columns */
+    /* 5. A/B BUTTON ALIGNMENT (Centered under die) */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] {
-        width: 120px !important;      /* Match die width exactly */
-        display: flex !important;      /* Row layout */
+        width: 120px !important;
+        display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
-        justify-content: space-between !important;
-        align-items: center !important;
-        margin: 0 auto !important;     /* Centers the pair under the die */
+        justify-content: center !important;
+        gap: 4px !important;
+        margin: 0 auto !important;
         padding: 0 !important;
     }
 
-    /* Fixed widths for A/B slots to maintain the center gap */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] > div {
-        width: 58px !important; 
-        flex: 0 0 58px !important;
-        padding: 0 !important;
-        margin: 0 !important;
+        width: 55px !important; 
+        flex: 0 0 55px !important;
     }
 
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
@@ -103,7 +106,6 @@ st.markdown("""
         width: 100% !important;
         background-color: #f0f2f6 !important;
         border: 1px solid #d1d5db !important;
-        padding: 0 !important;
         border-radius: 6px !important;
     }
 
@@ -122,7 +124,7 @@ st.markdown("""
         color: white !important;
     }
 
-    /* 5. Bank Headers */
+    /* 6. Bank Headers */
     .bank-header {
         background-color: #262730 !important;
         color: white !important;
