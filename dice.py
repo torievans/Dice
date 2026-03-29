@@ -39,7 +39,7 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. THE "VISIBLE BANKS" CSS ---
+# --- 3. UPDATED CSS (Perfect Alignment Fix) ---
 st.markdown("""
     <style>
     /* 1. Force White Page Background */
@@ -55,6 +55,7 @@ st.markdown("""
         border: 2px solid #eeeeee !important;
         border-radius: 15px !important;
         opacity: 1 !important;
+        margin-bottom: 5px !important; /* Space between die and buttons */
     }
 
     div[data-testid="stColumn"] button p {
@@ -65,22 +66,22 @@ st.markdown("""
         opacity: 1 !important;
     }
 
-    /* Held Dice (Greyed out) */
-    div[data-testid="stColumn"] button[kind="primary"] {
-        background-color: #f8f9fa !important;
-        border: 2px solid #cccccc !important;
-    }
-    div[data-testid="stColumn"] button[kind="primary"] p {
-        color: #999999 !important;
+    /* 3. THE ALIGNMENT FIX FOR A/B BUTTONS */
+    /* Target the container that holds the columns for A and B */
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] {
+        width: 120px !important; /* Match the die width exactly */
+        margin: 0 auto !important; /* Center the pair under the die */
+        gap: 2px !important; /* Tighter gap between A and B */
     }
 
-    /* 3. Small A/B Buttons */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
         height: 35px !important;
-        width: 100% !important;
+        min-width: 58px !important; /* Half of the 120px die width (approx) */
         background-color: #f0f2f6 !important;
         border: 1px solid #d1d5db !important;
+        padding: 0 !important;
     }
+
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button p {
         font-size: 16px !important;
         color: black !important;
@@ -90,26 +91,21 @@ st.markdown("""
     /* Red Selected Buttons */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] {
         background-color: #ff4b4b !important;
+        border: 1px solid #d33c3c !important;
     }
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
         color: white !important;
     }
 
-    /* 4. THE TRICK BANK HEADERS (The Fix) */
+    /* 4. Bank Headers */
     .bank-header {
-        background-color: #262730 !important; /* Dark Slate */
+        background-color: #262730 !important;
         color: white !important;
         padding: 10px 20px !important;
         border-radius: 10px !important;
         margin-bottom: 10px !important;
         font-weight: bold !important;
         text-align: center !important;
-    }
-    
-    /* Ensure the labels and dropdowns below the banks are visible */
-    label[data-testid="stWidgetLabel"] p {
-        color: black !important;
-        font-weight: bold !important;
     }
     </style>
     """, unsafe_allow_html=True)
