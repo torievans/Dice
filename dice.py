@@ -47,16 +47,8 @@ st.markdown("""
     h1, h2, h3, h4, p, span, label, div[data-testid="stMarkdownContainer"] p {
         color: black !important;
     }
-    .stDataFrame thead tr th {
-        background-color: #f8f9fa !important;
-        color: black !important;
-    }
-    .stDataFrame tbody tr td {
-        background-color: white !important;
-        color: black !important;
-    }
 
-    /* MEGA DICE STYLING */
+    /* 1. MEGA DICE STYLING (The square buttons) */
     div[data-testid="stColumn"] > div > div > button {
         height: 150px !important;
         width: 120px !important;
@@ -69,50 +61,38 @@ st.markdown("""
         color: black !important;
     }
 
-    /* HELD DICE FUNCTIONALITY (The Grey Out) */
-    div[data-testid="stColumn"] button[kind="primary"] {
-        background-color: #f8f9fa !important;
-        border: 2px solid #cccccc !important;
+    /* 2. THE GREY FIX: This handles dice AND A/B buttons when selected */
+    button[kind="primary"] {
+        background-color: #f0f2f6 !important; /* Grey background */
+        border: 2px solid #d1d5db !important;
     }
-    div[data-testid="stColumn"] button[kind="primary"] p {
-        color: #999999 !important; /* Greyed out pips */
+    button[kind="primary"] p {
+        color: #999999 !important; /* Grey text/pips */
     }
 
-    /* Small A/B Buttons */
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
+    /* 3. Small A/B Buttons (Default state) */
+    div[data-testid="stHorizontalBlock"] button {
         height: 35px !important;
-        background-color: #f0f2f6 !important;
+        background-color: #f8f9fa !important;
         border: 1px solid #d1d5db !important;
     }
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button p {
+    div[data-testid="stHorizontalBlock"] button p {
         font-size: 16px !important;
         color: black !important;
         font-weight: bold !important;
     }
-    
-    /* Red Selected A/B Buttons */
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] {
-        background-color: #ff4b4b !important;
-    }
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
-        color: white !important;
-    }
 
-    /* Action Buttons (Start & Roll) */
-    button[kind="primary"]:not([key^="v_"]):not([key^="t"]) {
-        background-color: #ff4b4b !important;
-    }
-    button[kind="primary"]:not([key^="v_"]):not([key^="t"]) p {
-        color: white !important;
-    }
-
-    /* SPECIFIC FIX FOR CREATE PROFILE BUTTON */
-    button[key="create_profile_btn"] {
+    /* 4. KEEP THE SETUP BUTTONS RED/WHITE (So they are visible) */
+    button[key="create_profile_btn"], button[key="start_game_btn"] {
         background-color: #ff4b4b !important;
         border: none !important;
+        height: auto !important;
+        width: auto !important;
+        padding: 10px 20px !important;
     }
-    button[key="create_profile_btn"] p {
+    button[key="create_profile_btn"] p, button[key="start_game_btn"] p {
         color: white !important;
+        font-size: 18px !important;
     }
 
     .bank-header {
@@ -152,8 +132,8 @@ if not st.session_state.game_active and not st.session_state.game_over:
                 st.rerun()
     with col2:
         st.subheader("Start Game")
-        selected = st.multiselect("Select Players for this Match:", list(stats["Players"].keys()))
-        if st.button("🚀 Start Game", type="primary") and selected:
+        selected = st.multiselect("Select Players:", list(stats["Players"].keys()))
+        if st.button("🚀 Start Game", type="primary", key="start_game_btn") and selected:
             st.session_state.players = selected
             st.session_state.current_player_idx = 0
             st.session_state.used_categories = {p: [] for p in selected}
@@ -168,7 +148,7 @@ if st.session_state.game_active and not st.session_state.game_over:
     current_p = st.session_state.players[st.session_state.current_player_idx]
     st.header(f"👤 {current_p}'s Turn")
     
-    if st.button("🎲 ROLL DICE", use_container_width=True, type="primary", disabled=st.session_state.rolls_left == 0):
+    if st.button("🎲 ROLL DICE", use_container_width=True, type="secondary", disabled=st.session_state.rolls_left == 0):
         locked = st.session_state.trickA_indices + st.session_state.trickB_indices
         for i in range(10):
             if i not in locked:
@@ -187,8 +167,6 @@ if st.session_state.game_active and not st.session_state.game_over:
             inA, inB = i in st.session_state.trickA_indices, i in st.session_state.trickB_indices
             is_held = inA or inB
             label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
-            
-            # GIANT DIE: marked as 'primary' if held to trigger the grey CSS
             st.button(label, key=f"v_{i}", disabled=True, type="primary" if is_held else "secondary")
             
             c1, c2 = st.columns(2)
@@ -234,7 +212,7 @@ if st.session_state.game_active and not st.session_state.game_over:
     ready_to_confirm = len(tA_vals) == 5 and len(tB_vals) == 5
     confirm_label = "✅ Confirm Turn" if ready_to_confirm else "Assign all dice to confirm"
 
-    if st.button(confirm_label, use_container_width=True, disabled=not (sel_a and sel_b), type="primary"):
+    if st.button(confirm_label, use_container_width=True, disabled=not ready_to_confirm):
         for s, v in [(sel_a, tA_vals), (sel_b, tB_vals)]:
             if s in ["Low Straight", "High Straight", "5 of a Kind"]:
                 st.session_state.trick_scores.at[s, current_p] = True
