@@ -38,24 +38,35 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. THE "PIPS ONLY" CSS ---
+# --- 3. THE "PIPS ONLY" CSS & WHITE BACKGROUND FORCE ---
 st.markdown("""
     <style>
-    /* 1. Target the dice buttons to remove the box entirely */
+    /* 1. FORCE WHITE BACKGROUND & DARK TEXT */
+    .stApp {
+        background-color: white !important;
+        color: black !important;
+    }
+    
+    /* Ensure all markdown text and headers are visible on white */
+    h1, h2, h3, p, span, label {
+        color: black !important;
+    }
+
+    /* 2. Dice buttons (Phantom look) */
     div[data-testid="stColumn"] > div > div > button {
         height: 150px !important;
         width: 120px !important;
-        background-color: transparent !important;
-        background: none !important;
-        border: none !important;
+        background-color: white !important; /* White background for the die box */
+        border: 2px solid #eeeeee !important; /* Very light border so it's visible but clean */
         box-shadow: none !important;
         padding: 0 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+        border-radius: 15px !important;
     }
 
-    /* 2. Make the dots (pips) twice as big (from 80px to 160px) */
+    /* 3. Make the pips massive and Black */
     div[data-testid="stColumn"] button p {
         font-size: 160px !important;
         line-height: 1 !important;
@@ -63,15 +74,16 @@ st.markdown("""
         margin: 0 !important;
     }
 
-    /* 3. Visual change for 'Held' dice (Grey pips instead of dark box) */
+    /* 4. Visual change for 'Held' dice (Grey pips and dark box) */
     div[data-testid="stColumn"] button[kind="primary"] {
-        background-color: transparent !important;
+        background-color: #f0f0f0 !important;
+        border: 2px solid #cccccc !important;
     }
     div[data-testid="stColumn"] button[kind="primary"] p {
-        color: #d3d3d3 !important;
+        color: #999999 !important;
     }
 
-    /* 4. RESTORE A/B BUTTONS: Keep these as small functional boxes */
+    /* 5. RESTORE A/B BUTTONS: Small functional boxes */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
         height: 35px !important;
         width: 100% !important;
@@ -146,7 +158,6 @@ if st.session_state.game_active and not st.session_state.game_over:
             is_held = inA or inB
             label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
             
-            # This is the dice button, now styled as a "phantom" button showing only pips
             st.button(label, key=f"v_{i}", disabled=True, type="primary" if is_held else "secondary")
             
             c1, c2 = st.columns(2)
@@ -184,24 +195,4 @@ if st.session_state.game_active and not st.session_state.game_over:
         st.markdown(f"### Trick A ({len(tA_vals)}/5)")
         sel_a = st.selectbox("Assign A:", get_opts(tA_vals, current_p), key="sA") if len(tA_vals) == 5 else None
     with cb:
-        st.markdown(f"### Trick B ({len(tB_vals)}/5)")
-        sel_b = st.selectbox("Assign B:", get_opts(tB_vals, current_p), key="sB") if len(tB_vals) == 5 else None
-
-    if st.button("✅ Confirm Turn", use_container_width=True, disabled=not (sel_a and sel_b), type="primary"):
-        for s, v in [(sel_a, tA_vals), (sel_b, tB_vals)]:
-            if s in ["Low Straight", "High Straight", "5 of a Kind"]:
-                st.session_state.trick_scores.at[s, current_p] = True
-            else:
-                st.session_state.master_scores.at[s, current_p] = calculate_score(v, s)
-            st.session_state.used_categories[current_p].append(s)
-        st.session_state.dice, st.session_state.trickA_indices, st.session_state.trickB_indices = [0]*10, [], []
-        st.session_state.rolls_left, st.session_state.first_roll_made = 3, False
-        st.session_state.current_player_idx = (st.session_state.current_player_idx + 1) % len(st.session_state.players)
-        st.rerun()
-
-# --- 8. SCOREBOARD ---
-if st.session_state.game_active or st.session_state.game_over:
-    st.divider()
-    st.subheader("📊 Scorecard")
-    st.data_editor(st.session_state.master_scores, use_container_width=True, disabled=True)
-    st.data_editor(st.session_state.trick_scores, use_container_width=True, disabled=True)
+        st.markdown(f"### Trick B ({len(tB_vals)}/5
