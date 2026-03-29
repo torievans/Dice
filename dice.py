@@ -41,22 +41,23 @@ stats = load_data()
 # --- 3. THE "PIPS ONLY" CSS & WHITE BACKGROUND FORCE ---
 st.markdown("""
     <style>
-    /* Force White Background */
+    /* 1. FORCE WHITE BACKGROUND & DARK TEXT */
     .stApp {
         background-color: white !important;
         color: black !important;
     }
     
-    h1, h2, h3, p, span, label, div {
+    /* Ensure all markdown text and headers are visible on white */
+    h1, h2, h3, p, span, label {
         color: black !important;
     }
 
-    /* Dice buttons */
+    /* 2. Dice buttons (Phantom look) */
     div[data-testid="stColumn"] > div > div > button {
         height: 150px !important;
         width: 120px !important;
-        background-color: white !important;
-        border: 2px solid #eeeeee !important;
+        background-color: white !important; /* White background for the die box */
+        border: 2px solid #eeeeee !important; /* Very light border so it's visible but clean */
         box-shadow: none !important;
         padding: 0 !important;
         display: flex !important;
@@ -65,7 +66,7 @@ st.markdown("""
         border-radius: 15px !important;
     }
 
-    /* Mega Pips */
+    /* 3. Make the pips massive and Black */
     div[data-testid="stColumn"] button p {
         font-size: 160px !important;
         line-height: 1 !important;
@@ -73,7 +74,7 @@ st.markdown("""
         margin: 0 !important;
     }
 
-    /* Held Dice */
+    /* 4. Visual change for 'Held' dice (Grey pips and dark box) */
     div[data-testid="stColumn"] button[kind="primary"] {
         background-color: #f0f0f0 !important;
         border: 2px solid #cccccc !important;
@@ -82,7 +83,7 @@ st.markdown("""
         color: #999999 !important;
     }
 
-    /* A/B Buttons */
+    /* 5. RESTORE A/B BUTTONS: Small functional boxes */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
         height: 35px !important;
         width: 100% !important;
@@ -90,6 +91,10 @@ st.markdown("""
         background-color: #f0f2f6 !important;
         border: 1px solid #d1d5db !important;
         border-radius: 6px !important;
+    }
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button p {
+        font-size: 16px !important;
+        color: black !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -150,8 +155,10 @@ if st.session_state.game_active and not st.session_state.game_over:
     for i in range(10):
         with d_cols[i]:
             inA, inB = i in st.session_state.trickA_indices, i in st.session_state.trickB_indices
+            is_held = inA or inB
             label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
-            st.button(label, key=f"v_{i}", disabled=True, type="primary" if (inA or inB) else "secondary")
+            
+            st.button(label, key=f"v_{i}", disabled=True, type="primary" if is_held else "secondary")
             
             c1, c2 = st.columns(2)
             if c1.button("A", key=f"tA_{i}", disabled=not st.session_state.first_roll_made):
@@ -186,11 +193,9 @@ if st.session_state.game_active and not st.session_state.game_over:
     ca, cb = st.columns(2)
     with ca:
         st.markdown(f"### Trick A ({len(tA_vals)}/5)")
-        st.write(f"Bank A: {tA_vals}")
         sel_a = st.selectbox("Assign A:", get_opts(tA_vals, current_p), key="sA") if len(tA_vals) == 5 else None
     with cb:
         st.markdown(f"### Trick B ({len(tB_vals)}/5)")
-        st.write(f"Bank B: {tB_vals}")
         sel_b = st.selectbox("Assign B:", get_opts(tB_vals, current_p), key="sB") if len(tB_vals) == 5 else None
 
     if st.button("✅ Confirm Turn", use_container_width=True, disabled=not (sel_a and sel_b), type="primary"):
