@@ -37,72 +37,95 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. THE "ALL WHITE" OVERRIDE CSS ---
+# --- 3. CLEAN WHITE UI + FIXED BUTTON STYLING ---
 st.markdown("""
-    <style>
-    .stApp, .stDataFrame, div[data-testid="stColumn"], div[data-testid="stHorizontalBlock"] {
-        background-color: white !important;
-        color: black !important;
-    }
-    h1, h2, h3, h4, p, span, label, div[data-testid="stMarkdownContainer"] p {
-        color: black !important;
-    }
-    .stDataFrame thead tr th {
-        background-color: #f8f9fa !important;
-        color: black !important;
-    }
-    .stDataFrame tbody tr td {
-        background-color: white !important;
-        color: black !important;
-    }
+<style>
 
-    /* MEGA DICE STYLING */
-    div[data-testid="stColumn"] > div > div > button {
-        height: 150px !important;
-        width: 120px !important;
-        background-color: white !important;
-        border: 2px solid #eeeeee !important;
-        border-radius: 15px !important;
-    }
-    div[data-testid="stColumn"] button p {
-        font-size: 160px !important;
-        color: black !important;
-    }
+/* --- GENERAL --- */
+.stApp, .stDataFrame, div[data-testid="stColumn"], div[data-testid="stHorizontalBlock"] {
+    background-color: white !important;
+    color: black !important;
+}
 
-    /* Small A/B Buttons */
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
-        height: 35px !important;
-        background-color: #f0f2f6 !important;
-        border: 1px solid #d1d5db !important;
-    }
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button p {
-        font-size: 16px !important;
-        color: black !important;
-        font-weight: bold !important;
-    }
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] {
-        background-color: #ff4b4b !important;
-    }
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
-        color: white !important;
-    }
+h1, h2, h3, h4, p, span, label {
+    color: black !important;
+}
 
-    /* BUTTON TEXT VISIBILITY (Start & Roll) */
-    button[kind="primary"] p {
-        color: white !important;
-    }
+/* --- FIX SECONDARY BUTTON VISIBILITY --- */
+button[kind="secondary"] {
+    background-color: #f0f2f6 !important;
+    color: black !important;
+    border: 1px solid #d1d5db !important;
+}
+button[kind="secondary"] p {
+    color: black !important;
+}
 
-    .bank-header {
-        background-color: #f8f9fa !important;
-        color: black !important;
-        padding: 10px 20px !important;
-        border-radius: 10px !important;
-        text-align: center !important;
-        border: 1px solid #dee2e6 !important;
-    }
-    .dice-tray { display: flex !important; justify-content: center !important; width: 100% !important; }
-    </style>
-    """, unsafe_allow_html=True)
+/* --- PRIMARY BUTTON TEXT --- */
+button[kind="primary"] p {
+    color: white !important;
+}
+
+/* --- DICE BUTTONS (SMALLER, CONTROLLED) --- */
+div[data-testid="stColumn"] button[kind] {
+    height: 110px !important;
+    width: 90px !important;
+    background-color: white !important;
+    border: 2px solid #eeeeee !important;
+    border-radius: 12px !important;
+}
+
+/* Dice symbols */
+div[data-testid="stColumn"] button[kind] p {
+    font-size: 110px !important;
+    color: black !important;
+}
+
+/* --- A/B BUTTONS --- */
+div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
+    height: 30px !important;
+    font-size: 14px !important;
+    padding: 2px 6px !important;
+    background-color: #f0f2f6 !important;
+    border: 1px solid #d1d5db !important;
+}
+
+div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] {
+    background-color: #ff4b4b !important;
+}
+div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
+    color: white !important;
+}
+
+/* --- TABLES --- */
+.stDataFrame thead tr th {
+    background-color: #f8f9fa !important;
+    color: black !important;
+}
+.stDataFrame tbody tr td {
+    background-color: white !important;
+    color: black !important;
+}
+
+/* --- BANK HEADER --- */
+.bank-header {
+    background-color: #f8f9fa !important;
+    color: black !important;
+    padding: 10px 20px !important;
+    border-radius: 10px !important;
+    text-align: center !important;
+    border: 1px solid #dee2e6 !important;
+}
+
+/* --- DICE LAYOUT --- */
+.dice-tray { 
+    display: flex !important; 
+    justify-content: center !important; 
+    width: 100% !important; 
+}
+
+</style>
+""", unsafe_allow_html=True)
 
 # --- 4. INITIALIZE STATE ---
 for key in ['game_active', 'game_over', 'first_roll_made']:
