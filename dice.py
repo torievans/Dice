@@ -39,7 +39,7 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. UPDATED CSS (Force Side-by-Side) ---
+# --- 3. UPDATED CSS (Final Centering Fix) ---
 st.markdown("""
     <style>
     /* 1. Force White Page Background */
@@ -55,7 +55,8 @@ st.markdown("""
         border: 2px solid #eeeeee !important;
         border-radius: 15px !important;
         opacity: 1 !important;
-        margin-bottom: 5px !important;
+        margin: 0 auto !important; /* Center the die in the column */
+        display: block !important;
     }
 
     div[data-testid="stColumn"] button p {
@@ -66,22 +67,25 @@ st.markdown("""
         opacity: 1 !important;
     }
 
-    /* 3. THE SIDE-BY-SIDE ALIGNMENT FIX */
-    /* Target the horizontal block that contains the A and B columns */
+    /* 3. THE CENTER POINT ALIGNMENT FIX */
+    /* Target the container holding A and B */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] {
-        width: 120px !important; /* Match the die width */
-        display: flex !important; /* Force flexbox */
-        flex-direction: row !important; /* Force horizontal alignment */
-        flex-wrap: nowrap !important; /* Prevent jumping to the next line */
-        justify-content: space-between !important;
-        gap: 4px !important;
-        margin: 0 auto !important;
+        width: 120px !important;      /* Match the die width */
+        display: flex !important;      /* Flexbox for side-by-side */
+        flex-direction: row !important;
+        justify-content: center !important; /* Center buttons within this 120px */
+        align-items: center !important;
+        gap: 4px !important;           /* Space between A and B */
+        margin: 0 auto !important;     /* CRITICAL: Centers the whole pair under the die */
+        padding: 0 !important;
     }
 
-    /* Target the individual button wrappers */
+    /* Set fixed widths for the A/B slots to keep the 'center gap' dead center */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] > div {
-        width: 58px !important; /* Fixed width for each button slot */
-        flex: 0 0 58px !important;
+        width: 55px !important; 
+        flex: 0 0 55px !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
 
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
