@@ -92,6 +92,15 @@ st.markdown("""
         color: white !important;
     }
 
+    /* SPECIFIC FIX FOR CREATE PROFILE BUTTON */
+    button[key="create_profile_btn"] {
+        background-color: #ff4b4b !important;
+        border: none !important;
+    }
+    button[key="create_profile_btn"] p {
+        color: white !important;
+    }
+
     .bank-header {
         background-color: #f8f9fa !important;
         color: black !important;
@@ -123,7 +132,8 @@ if not st.session_state.game_active and not st.session_state.game_over:
     with col1:
         st.subheader("Manage Profiles")
         new_player = st.text_input("New Player Name:")
-        if st.button("➕ Create Profile") and new_player:
+        # KEY ADDED HERE
+        if st.button("➕ Create Profile", key="create_profile_btn") and new_player:
             if new_player not in stats["Players"]:
                 stats["Players"][new_player] = {"high_score": 0}
                 save_data(stats)
