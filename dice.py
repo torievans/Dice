@@ -39,16 +39,20 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. THE "PIPS ONLY" CSS & WHITE BACKGROUND FORCE ---
+# --- 3. UPDATED CSS (Red A/B, Central Pips) ---
 st.markdown("""
     <style>
+    /* 1. FORCE WHITE BACKGROUND & DARK TEXT */
     .stApp {
         background-color: white !important;
         color: black !important;
     }
-    h1, h2, h3, p, span, label {
+    
+    h1, h2, h3, p, span, label, div {
         color: black !important;
     }
+
+    /* 2. Dice buttons (Phantom look, Big Pips) */
     div[data-testid="stColumn"] > div > div > button {
         height: 150px !important;
         width: 120px !important;
@@ -61,12 +65,16 @@ st.markdown("""
         justify-content: center !important;
         border-radius: 15px !important;
     }
+
+    /* 3. Make the pips massive and Black */
     div[data-testid="stColumn"] button p {
         font-size: 160px !important;
         line-height: 1 !important;
         color: black !important;
         margin: 0 !important;
     }
+
+    /* 4. Visual change for 'Held' dice (Grey pips and box) */
     div[data-testid="stColumn"] button[kind="primary"] {
         background-color: #f0f0f0 !important;
         border: 2px solid #cccccc !important;
@@ -74,6 +82,8 @@ st.markdown("""
     div[data-testid="stColumn"] button[kind="primary"] p {
         color: #999999 !important;
     }
+
+    /* 5. === RESTORE A/B BUTTONS (Functional boxes) === */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
         height: 35px !important;
         width: 100% !important;
@@ -81,10 +91,30 @@ st.markdown("""
         background-color: #f0f2f6 !important;
         border: 1px solid #d1d5db !important;
         border-radius: 6px !important;
-    }
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button p {
-        font-size: 16px !important;
         color: black !important;
+    }
+    
+    /* 6. === RED SELECTED LOGIC === */
+    /* Target only primary (selected) A/B buttons in the horizontal block */
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] {
+        background-color: #ff4b4b !important; /* Streamlit Red */
+        color: white !important; /* White text on red background */
+        border: 1px solid #d33c3c !important;
+    }
+    
+    /* Ensure text in selected A/B buttons doesn't turn black (stay white on red) */
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
+        color: white !important;
+    }
+
+    /* 7. === CENTRALIZATION LOGIC === */
+    /* Center the dice container horizontally on the page */
+    .dice-tray {
+        display: flex !important;
+        justify-content: center !important;
+        width: 100% !important;
+        gap: 10px; /* Space between dice */
+        margin-bottom: 20px;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -133,34 +163,53 @@ if st.session_state.game_active and not st.session_state.game_over:
     if st.button("🎲 ROLL DICE", use_container_width=True, type="primary", disabled=st.session_state.rolls_left == 0):
         locked = st.session_state.trickA_indices + st.session_state.trickB_indices
         for i in range(10):
-            if i not in locked: st.session_state.dice[i] = random.randint(1, 6)
+            if i not in locked:
+                st.session_state.dice[i] = random.randint(1, 6)
         st.session_state.rolls_left -= 1
         st.session_state.first_roll_made = True
         st.rerun()
 
     st.write(f"**Rolls Left:** {st.session_state.rolls_left}")
 
+    # --- THE CENTRALIZED DICE TRAY ---
     dice_faces = {0: "?", 1: "⚀", 2: "⚁", 3: "⚂", 4: "⚃", 5: "⚄", 6: "⚅"}
+    
+    # ADD THE CENTRALIZATION WRAPPER
+    st.markdown('<div class="dice-tray">', unsafe_allow_html=True)
+    
     d_cols = st.columns(10)
     for i in range(10):
         with d_cols[i]:
-            inA, inB = i in st.session_state.trickA_indices, i in st.session_state.trickB_indices
-            label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
-            st.button(label, key=f"v_{i}", disabled=True, type="primary" if (inA or inB) else "secondary")
+            inA = i in st.session_state.trickA_indices
+            inB = i in st.session_state.trickB_indices
+            is_held = inA or inB
             
+            # 1. Huge Pips (Displayed on a neutral 'primary' button that fades)
+            label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
+            st.button(label, key=f"v_{i}", disabled=True, type="primary" if is_held else "secondary")
+            
+            # 2. SELECTION BUTTONS (A/B)
+            # The type="primary" logic will now trigger the CSS red color
             c1, c2 = st.columns(2)
-            if c1.button("A", key=f"tA_{i}", disabled=not st.session_state.first_roll_made):
+            
+            # Button A: Set type="primary" if selected for Trick A
+            if c1.button("A", key=f"tA_{i}", disabled=not st.session_state.first_roll_made, type="primary" if inA else "secondary"):
                 if inA: st.session_state.trickA_indices.remove(i)
                 else: 
                     if inB: st.session_state.trickB_indices.remove(i)
                     st.session_state.trickA_indices.append(i)
                 st.rerun()
-            if c2.button("B", key=f"tB_{i}", disabled=not st.session_state.first_roll_made):
+                
+            # Button B: Set type="primary" if selected for Trick B
+            if c2.button("B", key=f"tB_{i}", disabled=not st.session_state.first_roll_made, type="primary" if inB else "secondary"):
                 if inB: st.session_state.trickB_indices.remove(i)
                 else:
                     if inA: st.session_state.trickA_indices.remove(i)
                     st.session_state.trickB_indices.append(i)
                 st.rerun()
+
+    # CLOSE THE CENTRALIZATION WRAPPER
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # --- 7. SCORING ---
     st.divider()
