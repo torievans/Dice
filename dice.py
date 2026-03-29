@@ -39,43 +39,43 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. THE "ALL WHITE" OVERRIDE CSS ---
+# --- 3. THE "TOTAL WHITEOUT" CSS ---
 st.markdown("""
     <style>
-    /* 1. FORCE GLOBAL WHITE BACKGROUND & BLACK TEXT */
-    .stApp, .stDataFrame, div[data-testid="stColumn"], div[data-testid="stHorizontalBlock"] {
+    /* 1. OVERWRITE STREAMLIT THEME VARIABLES */
+    :root {
+        --background-color: #ffffff !important;
+        --secondary-background-color: #f0f2f6 !important;
+        --text-color: #000000 !important;
+        --primary-color: #ff4b4b !important;
+    }
+
+    /* 2. FORCE GLOBAL WHITE BACKGROUND */
+    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
         background-color: white !important;
         color: black !important;
     }
-    
-    /* Force all textual elements to black so they don't vanish on white */
-    h1, h2, h3, h4, p, span, label, div[data-testid="stMarkdownContainer"] p {
-        color: black !important;
-    }
 
-    /* 2. DATAFRAME / TABLE SPECIFIC OVERRIDES (The main fix) */
-    /* Target the table header background */
-    .stDataFrame thead tr th {
-        background-color: #f8f9fa !important; /* Very light grey header */
-        color: black !important;
-        border-bottom: 2px solid #dee2e6 !important;
+    /* 3. FORCE TABLES/DATAFRAMES TO WHITE */
+    /* This targets the container, the cells, and the headers of the scorecard */
+    [data-testid="stTable"], [data-testid="stDataFrame"], .stTable, .stDataFrame {
+        background-color: white !important;
     }
     
-    /* Target all table cells (body) */
-    .stDataFrame tbody tr td {
+    /* Target individual cells in the table body and header */
+    th, td, .st-ae, .st-af, .st-ag, .st-ah {
         background-color: white !important;
         color: black !important;
-        border: 1px solid #dee2e6 !important;
+        border: 1px solid #eeeeee !important;
     }
 
-    /* 3. MEGA DICE STYLING */
+    /* 4. MEGA DICE STYLING */
     div[data-testid="stColumn"] > div > div > button {
         height: 150px !important;
         width: 120px !important;
         background-color: white !important;
         border: 2px solid #eeeeee !important;
         box-shadow: none !important;
-        padding: 0 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
@@ -83,32 +83,31 @@ st.markdown("""
     }
     div[data-testid="stColumn"] button p {
         font-size: 160px !important;
-        line-height: 1 !important;
         color: black !important;
         margin: 0 !important;
     }
 
-    /* Held Dice (Greyed out) */
+    /* Held Dice */
     div[data-testid="stColumn"] button[kind="primary"] {
-        background-color: #f8f9fa !important;
+        background-color: #f0f2f6 !important;
         border: 2px solid #cccccc !important;
     }
     div[data-testid="stColumn"] button[kind="primary"] p { color: #999999 !important; }
 
-    /* 4. A/B BUTTONS (Functional boxes) */
+    /* 5. A/B BUTTONS & INPUTS */
+    /* Force dropdowns and inputs to be white with black text */
+    div[data-testid="stSelectbox"], div[data-testid="stMultiSelect"], .stButton button {
+        background-color: white !important;
+        color: black !important;
+    }
+
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
         height: 35px !important;
-        width: 100% !important;
         background-color: #f0f2f6 !important;
         border: 1px solid #d1d5db !important;
     }
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button p {
-        font-size: 16px !important;
-        color: black !important;
-        font-weight: bold !important;
-    }
     
-    /* Red Selected Buttons logic */
+    /* Red Selected A/B Buttons */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] {
         background-color: #ff4b4b !important;
     }
@@ -116,26 +115,19 @@ st.markdown("""
         color: white !important;
     }
 
-    /* 5. BANK HEADERS (Updated to look clean on white) */
+    /* 6. BANK HEADERS */
     .bank-header {
-        background-color: #f8f9fa !important; /* Light slate on white */
+        background-color: #f0f2f6 !important;
         color: black !important;
-        padding: 10px 20px !important;
+        padding: 10px !important;
         border-radius: 10px !important;
-        margin-bottom: 10px !important;
-        font-weight: bold !important;
+        border: 1px solid #d1d5db !important;
         text-align: center !important;
-        border: 1px solid #dee2e6 !important;
-    }
-    
-    /* Center the dice tray */
-    .dice-tray {
-        display: flex !important;
-        justify-content: center !important;
-        width: 100% !important;
+        font-weight: bold !important;
     }
     </style>
     """, unsafe_allow_html=True)
+
 # --- 4. INITIALIZE STATE ---
 for key in ['game_active', 'game_over', 'first_roll_made']:
     if key not in st.session_state: st.session_state[key] = False
