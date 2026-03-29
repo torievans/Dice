@@ -12,13 +12,16 @@ def calculate_score(dice, category):
     target_map = {"1s": 1, "2s": 2, "3s": 3, "4s": 4, "5s": 5, "6s": 6}
     if category in target_map:
         target = target_map[category]
-        return sum(1 for d in dice if d != target) * target
+        score = sum(1 for d in dice if d != target) * target
+        return "-" if score == 0 else str(score) # Return "-" if 0
+    
     if category == "Full House":
         sorted_items = sorted(counts.items(), key=lambda x: (x[1], x[0]), reverse=True)
         three_val = sorted_items[0][0]
         two_val = sorted_items[1][0] if len(sorted_items) > 1 else three_val
-        return ((6 - three_val) * 3) + ((5 - two_val) * 2)
-    return 0 
+        score = ((6 - three_val) * 3) + ((5 - two_val) * 2)
+        return "-" if score == 0 else str(score) # Return "-" if 0
+    return "0"
 
 # --- 2. CONFIG & DATA ---
 st.set_page_config(page_title="Double Cameroon", layout="wide")
@@ -69,13 +72,13 @@ st.markdown("""
         color: black !important;
     }
 
-    /* HELD DICE FUNCTIONALITY (Now Grey) */
+    /* HELD DICE FUNCTIONALITY */
     div[data-testid="stColumn"] button[kind="primary"] {
         background-color: #f8f9fa !important;
         border: 2px solid #cccccc !important;
     }
     div[data-testid="stColumn"] button[kind="primary"] p {
-        color: #999999 !important; /* Greyed out pips */
+        color: #999999 !important;
     }
 
     /* Small A/B Buttons */
@@ -90,7 +93,6 @@ st.markdown("""
         font-weight: bold !important;
     }
     
-    /* Red Selected A/B Buttons */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] {
         background-color: #ff4b4b !important;
     }
@@ -98,15 +100,10 @@ st.markdown("""
         color: white !important;
     }
 
-    /* Action Buttons (Start & Roll) */
-    button[kind="primary"]:not([key^="v_"]):not([key^="t"]) {
-        background-color: #ff4b4b !important;
-    }
-    button[kind="primary"]:not([key^="v_"]):not([key^="t"]) p {
+    button[kind="primary"] p {
         color: white !important;
     }
 
-    /* SPECIFIC FIX FOR CREATE PROFILE BUTTON */
     button[key="create_profile_btn"] {
         background-color: #ff4b4b !important;
         border: none !important;
@@ -148,7 +145,6 @@ if not st.session_state.game_active and not st.session_state.game_over:
             if new_player not in stats["Players"]:
                 stats["Players"][new_player] = {"high_score": 0}
                 save_data(stats)
-                st.success(f"Added {new_player}!")
                 st.rerun()
     with col2:
         st.subheader("Start Game")
@@ -158,7 +154,8 @@ if not st.session_state.game_active and not st.session_state.game_over:
             st.session_state.current_player_idx = 0
             st.session_state.used_categories = {p: [] for p in selected}
             rows = ["1s", "2s", "3s", "4s", "5s", "6s", "Full House"]
-            st.session_state.master_scores = pd.DataFrame(0, index=rows, columns=selected)
+            # Initialize with empty strings for better visual tracking
+            st.session_state.master_scores = pd.DataFrame("", index=rows, columns=selected)
             st.session_state.trick_scores = pd.DataFrame(False, index=["Low Straight", "High Straight", "5 of a Kind"], columns=selected)
             st.session_state.game_active = True
             st.rerun()
@@ -187,7 +184,6 @@ if st.session_state.game_active and not st.session_state.game_over:
             inA, inB = i in st.session_state.trickA_indices, i in st.session_state.trickB_indices
             is_held = inA or inB
             label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
-            
             st.button(label, key=f"v_{i}", disabled=True, type="primary" if is_held else "secondary")
             
             c1, c2 = st.columns(2)
@@ -238,6 +234,7 @@ if st.session_state.game_active and not st.session_state.game_over:
             if s in ["Low Straight", "High Straight", "5 of a Kind"]:
                 st.session_state.trick_scores.at[s, current_p] = True
             else:
+                # Store as string so we can display "-"
                 st.session_state.master_scores.at[s, current_p] = calculate_score(v, s)
             st.session_state.used_categories[current_p].append(s)
         st.session_state.dice, st.session_state.trickA_indices, st.session_state.trickB_indices = [0]*10, [], []
