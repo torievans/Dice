@@ -164,41 +164,35 @@ if st.session_state.game_active and not st.session_state.game_over:
 
     # --- 7. SCORING ---
     st.divider()
-    tA_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickA_indices])
-    tB_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickB_indices])
+    # Adding reverse=True flips the list to High-to-Low
+    tA_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickA_indices], reverse=True)
+    tB_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickB_indices], reverse=True)
     
     def get_opts(dice, player):
         opts = ["1s", "2s", "3s", "4s", "5s", "6s"]
+        # We need a low-to-high version specifically for straight checks
+        check_dice = sorted(dice)
         counts = Counter(dice)
         sorted_counts = sorted(counts.values(), reverse=True)
+        
         if (len(sorted_counts) == 2 and sorted_counts[0] >= 3 and sorted_counts[1] >= 2) or (len(sorted_counts) == 1 and sorted_counts[0] == 5):
             opts.append("Full House")
-        if dice == [1, 2, 3, 4, 5]: opts.append("Low Straight")
-        if dice == [2, 3, 4, 5, 6]: opts.append("High Straight")
+            
+        if check_dice == [1, 2, 3, 4, 5]: opts.append("Low Straight")
+        if check_dice == [2, 3, 4, 5, 6]: opts.append("High Straight")
+        
         if len(sorted_counts) == 1 and sorted_counts[0] == 5: opts.append("5 of a Kind")
         return [o for o in opts if o not in st.session_state.used_categories[player]]
 
     ca, cb = st.columns(2)
     with ca:
-        # Display the dice values directly in the header
+        # Displaying the High-to-Low values in the header
         st.markdown(f"### Trick A ({len(tA_vals)}/5) {tA_vals if tA_vals else ''}")
         sel_a = st.selectbox("Assign A:", get_opts(tA_vals, current_p), key="sA") if len(tA_vals) == 5 else None
     with cb:
-        # Display the dice values directly in the header
+        # Displaying the High-to-Low values in the header
         st.markdown(f"### Trick B ({len(tB_vals)}/5) {tB_vals if tB_vals else ''}")
         sel_b = st.selectbox("Assign B:", get_opts(tB_vals, current_p), key="sB") if len(tB_vals) == 5 else None
-
-    if st.button("✅ Confirm Turn", use_container_width=True, disabled=not (sel_a and sel_b), type="primary"):
-        for s, v in [(sel_a, tA_vals), (sel_b, tB_vals)]:
-            if s in ["Low Straight", "High Straight", "5 of a Kind"]:
-                st.session_state.trick_scores.at[s, current_p] = True
-            else:
-                st.session_state.master_scores.at[s, current_p] = calculate_score(v, s)
-            st.session_state.used_categories[current_p].append(s)
-        st.session_state.dice, st.session_state.trickA_indices, st.session_state.trickB_indices = [0]*10, [], []
-        st.session_state.rolls_left, st.session_state.first_roll_made = 3, False
-        st.session_state.current_player_idx = (st.session_state.current_player_idx + 1) % len(st.session_state.players)
-        st.rerun()
 
 # --- 8. SCOREBOARD ---
 if st.session_state.game_active or st.session_state.game_over:
