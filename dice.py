@@ -39,7 +39,7 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. THE NO-WRAP 10-COLUMN CSS ---
+# --- 3. THE "ZERO-PADDING" ALIGNMENT CSS ---
 st.markdown("""
     <style>
     /* 1. Force White Page Background */
@@ -47,21 +47,24 @@ st.markdown("""
         background-color: white !important;
     }
 
-    /* 2. FORCE 10 COLUMNS ON ONE LINE */
-    /* This targets the row holding the 10 dice and stops it from splitting */
+    /* 2. FORCE 10 COLUMNS ON ONE LINE & REMOVE PADDING */
     div[data-testid="stHorizontalBlock"] {
         display: flex !important;
-        flex-wrap: nowrap !important; /* Forces all 10 to stay on one row */
+        flex-wrap: nowrap !important;
         justify-content: center !important;
         width: 100% !important;
+        padding: 0 !important; /* Remove container padding */
+        gap: 0px !important;   /* Control gap manually */
     }
 
-    /* 3. CENTER CONTENT INSIDE EACH COLUMN */
+    /* 3. CENTER CONTENT INSIDE EACH COLUMN & REMOVE PADDING */
     div[data-testid="stColumn"] {
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
-        min-width: 125px !important; /* Slightly wider than the die to prevent overlap */
+        min-width: 125px !important;
+        padding: 0 !important; /* Remove internal column padding */
+        margin: 0 !important;
     }
 
     /* 4. Mega Dice Styling */
@@ -81,24 +84,26 @@ st.markdown("""
         line-height: 1 !important;
         color: black !important;
         margin: 0 !important;
-        opacity: 1 !important;
     }
 
-    /* 5. A/B BUTTON ALIGNMENT (Centered under die) */
+    /* 5. THE BUTTON ALIGNMENT FIX (A/B ROW) */
+    /* Target the nested horizontal block for A/B buttons */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] {
-        width: 120px !important;
+        width: 120px !important; /* Lock to die width */
         display: flex !important;
         flex-direction: row !important;
-        flex-wrap: nowrap !important;
         justify-content: center !important;
+        align-items: center !important;
         gap: 4px !important;
-        margin: 0 auto !important;
+        margin: 0 !important; /* Remove margin that might cause drift */
         padding: 0 !important;
     }
 
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] > div {
         width: 55px !important; 
         flex: 0 0 55px !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
 
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
