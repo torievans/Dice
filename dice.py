@@ -39,20 +39,20 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. UPDATED CSS (Red A/B, Central Pips) ---
+# --- 3. UPDATED CSS (Fixed Button Font Sizes) ---
 st.markdown("""
     <style>
-    /* 1. FORCE WHITE BACKGROUND & DARK TEXT */
+    /* 1. FORCE WHITE BACKGROUND */
     .stApp {
         background-color: white !important;
         color: black !important;
     }
     
-    h1, h2, h3, p, span, label, div {
+    h1, h2, h3, label {
         color: black !important;
     }
 
-    /* 2. Dice buttons (Phantom look, Big Pips) */
+    /* 2. DICE BUTTONS (The White Boxes) */
     div[data-testid="stColumn"] > div > div > button {
         height: 150px !important;
         width: 120px !important;
@@ -66,15 +66,16 @@ st.markdown("""
         border-radius: 15px !important;
     }
 
-    /* 3. Make the pips massive and Black */
-    div[data-testid="stColumn"] button p {
+    /* 3. MEGA PIPS (Targeting only the first row of buttons) */
+    /* We use 'height' as a selector to ensure we only hit the 150px dice buttons */
+    button[height="150px"] p, div[data-testid="stColumn"] > div > div > button p {
         font-size: 160px !important;
         line-height: 1 !important;
         color: black !important;
         margin: 0 !important;
     }
 
-    /* 4. Visual change for 'Held' dice (Grey pips and box) */
+    /* 4. HELD DICE STATE */
     div[data-testid="stColumn"] button[kind="primary"] {
         background-color: #f0f0f0 !important;
         border: 2px solid #cccccc !important;
@@ -83,37 +84,39 @@ st.markdown("""
         color: #999999 !important;
     }
 
-    /* 5. === RESTORE A/B BUTTONS (Functional boxes) === */
+    /* 5. === FIXED A/B BUTTONS === */
+    /* Target the small buttons specifically to prevent giant text */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
         height: 35px !important;
         width: 100% !important;
-        font-size: 16px !important;
         background-color: #f0f2f6 !important;
         border: 1px solid #d1d5db !important;
         border-radius: 6px !important;
+    }
+    
+    /* This is the critical fix: Resetting the 'p' tag inside small buttons */
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button p {
+        font-size: 16px !important; /* Back to normal size */
+        font-weight: bold !important;
         color: black !important;
     }
     
-    /* 6. === RED SELECTED LOGIC === */
-    /* Target only primary (selected) A/B buttons in the horizontal block */
+    /* 6. RED SELECTED LOGIC */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] {
-        background-color: #ff4b4b !important; /* Streamlit Red */
-        color: white !important; /* White text on red background */
+        background-color: #ff4b4b !important;
         border: 1px solid #d33c3c !important;
     }
     
-    /* Ensure text in selected A/B buttons doesn't turn black (stay white on red) */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
         color: white !important;
     }
 
-    /* 7. === CENTRALIZATION LOGIC === */
-    /* Center the dice container horizontally on the page */
+    /* 7. CENTRALIZATION */
     .dice-tray {
         display: flex !important;
         justify-content: center !important;
         width: 100% !important;
-        gap: 10px; /* Space between dice */
+        gap: 10px;
         margin-bottom: 20px;
     }
     </style>
