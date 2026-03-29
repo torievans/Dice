@@ -39,7 +39,7 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. THE "ZERO-PADDING" ALIGNMENT CSS ---
+# --- 3. THE "RIGID GRID" ALIGNMENT CSS ---
 st.markdown("""
     <style>
     /* 1. Force White Page Background */
@@ -47,27 +47,27 @@ st.markdown("""
         background-color: white !important;
     }
 
-    /* 2. FORCE 10 COLUMNS ON ONE LINE & REMOVE PADDING */
+    /* 2. THE MASTER GRID FIX */
+    /* This forces the 10 columns to be exactly the same width with no hidden padding */
     div[data-testid="stHorizontalBlock"] {
-        display: flex !important;
-        flex-wrap: nowrap !important;
-        justify-content: center !important;
+        display: grid !important;
+        grid-template-columns: repeat(10, 1fr) !important;
+        gap: 0px !important;
         width: 100% !important;
-        padding: 0 !important; /* Remove container padding */
-        gap: 0px !important;   /* Control gap manually */
+        justify-items: center !important; /* Centers everything in the grid cell */
     }
 
-    /* 3. CENTER CONTENT INSIDE EACH COLUMN & REMOVE PADDING */
+    /* Target the columns to remove any Streamlit default margins */
     div[data-testid="stColumn"] {
+        width: 130px !important; /* Slightly wider than the 120px die */
+        padding: 0 !important;
+        margin: 0 !important;
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
-        min-width: 125px !important;
-        padding: 0 !important; /* Remove internal column padding */
-        margin: 0 !important;
     }
 
-    /* 4. Mega Dice Styling */
+    /* 3. Mega Dice Styling */
     div[data-testid="stColumn"] button {
         height: 150px !important;
         width: 120px !important;
@@ -75,8 +75,7 @@ st.markdown("""
         border: 2px solid #eeeeee !important;
         border-radius: 15px !important;
         opacity: 1 !important;
-        margin: 0 auto 5px auto !important;
-        display: block !important;
+        margin-bottom: 5px !important;
     }
 
     div[data-testid="stColumn"] button p {
@@ -86,50 +85,51 @@ st.markdown("""
         margin: 0 !important;
     }
 
-    /* 5. THE BUTTON ALIGNMENT FIX (A/B ROW) */
-    /* Target the nested horizontal block for A/B buttons */
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] {
-        width: 120px !important; /* Lock to die width */
+    /* 4. THE BUTTON ALIGNMENT FIX (A/B ROW) */
+    /* This targets the container for A and B buttons */
+    div[data-testid="stColumn"] div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
+        width: 120px !important;      /* Lock width to match die */
         justify-content: center !important;
-        align-items: center !important;
         gap: 4px !important;
-        margin: 0 !important; /* Remove margin that might cause drift */
+        margin: 0 auto !important;
         padding: 0 !important;
     }
 
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] > div {
-        width: 55px !important; 
-        flex: 0 0 55px !important;
+    /* Ensure the sub-columns for A and B don't add their own padding */
+    div[data-testid="stColumn"] div[data-testid="stHorizontalBlock"] > div {
+        flex: 0 0 55px !important; /* Fixed width */
+        width: 55px !important;
         padding: 0 !important;
         margin: 0 !important;
     }
 
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
+    div[data-testid="stHorizontalBlock"] button {
         height: 35px !important;
         width: 100% !important;
         background-color: #f0f2f6 !important;
         border: 1px solid #d1d5db !important;
         border-radius: 6px !important;
+        padding: 0 !important;
     }
 
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button p {
+    div[data-testid="stHorizontalBlock"] button p {
         font-size: 16px !important;
         color: black !important;
         font-weight: bold !important;
     }
     
     /* Red Selected Buttons */
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] {
+    div[data-testid="stHorizontalBlock"] button[kind="primary"] {
         background-color: #ff4b4b !important;
         border: 1px solid #d33c3c !important;
     }
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
+    div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
         color: white !important;
     }
 
-    /* 6. Bank Headers */
+    /* 5. Bank Headers */
     .bank-header {
         background-color: #262730 !important;
         color: white !important;
