@@ -27,10 +27,8 @@ DB_FILE = "cameroon_stats.json"
 def load_data():
     if os.path.exists(DB_FILE):
         try:
-            with open(DB_FILE, "r") as f:
-                data = json.load(f)
-                return data if "Players" in data else {"Players": {}}
-        except: return {"Players": {}}
+            with open(DB_FILE, "r") as f: return json.load(f)
+        except: return {}
     return {"Players": {}}
 
 def save_data(data):
@@ -39,60 +37,59 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. THE "TARGETED" CSS ---
+# --- 3. THE "ALL WHITE" OVERRIDE CSS ---
 st.markdown("""
     <style>
-    /* 1. Global White Theme */
-    .stApp, .stDataFrame, div[data-testid="stColumn"] {
+    .stApp, .stDataFrame, div[data-testid="stColumn"], div[data-testid="stHorizontalBlock"] {
         background-color: white !important;
         color: black !important;
     }
-    h1, h2, h3, h4, p, span, label { color: black !important; }
+    h1, h2, h3, h4, p, span, label, div[data-testid="stMarkdownContainer"] p {
+        color: black !important;
+    }
+    .stDataFrame thead tr th {
+        background-color: #f8f9fa !important;
+        color: black !important;
+    }
+    .stDataFrame tbody tr td {
+        background-color: white !important;
+        color: black !important;
+    }
 
-    /* 2. THE MEGA DICE: Targeted ONLY by the 'v_' key */
-    button[key*="v_"] {
+    /* MEGA DICE STYLING */
+    div[data-testid="stColumn"] > div > div > button {
         height: 150px !important;
         width: 120px !important;
-        min-width: 120px !important;
         background-color: white !important;
         border: 2px solid #eeeeee !important;
         border-radius: 15px !important;
-        padding: 0 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
     }
-    button[key*="v_"] p {
+    div[data-testid="stColumn"] button p {
         font-size: 160px !important;
-        line-height: 1 !important;
         color: black !important;
-        margin: 0 !important;
     }
 
-    /* 3. A/B BUTTONS: Normal size */
-    button[key*="tA_"], button[key*="tB_"] {
+    /* Small A/B Buttons */
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
         height: 35px !important;
         background-color: #f0f2f6 !important;
         border: 1px solid #d1d5db !important;
     }
-    button[key*="tA_"] p, button[key*="tB_"] p {
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button p {
         font-size: 16px !important;
         color: black !important;
         font-weight: bold !important;
     }
-
-    /* 4. ACTION BUTTONS (Start, Roll, Confirm, Create) */
-    /* Forced to Red/White but normal height */
-    button[kind="primary"], button[key="create_btn"] {
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] {
         background-color: #ff4b4b !important;
-        border: none !important;
-        height: auto !important;
-        padding: 10px 20px !important;
     }
-    button[kind="primary"] p, button[key="create_btn"] p {
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
         color: white !important;
-        font-size: 18px !important;
-        font-weight: bold !important;
+    }
+
+    /* BUTTON TEXT VISIBILITY (Start & Roll) */
+    button[kind="primary"] p {
+        color: white !important;
     }
 
     .bank-header {
@@ -103,6 +100,7 @@ st.markdown("""
         text-align: center !important;
         border: 1px solid #dee2e6 !important;
     }
+    .dice-tray { display: flex !important; justify-content: center !important; width: 100% !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -116,33 +114,43 @@ if 'rolls_left' not in st.session_state: st.session_state.rolls_left = 3
 if 'current_player_idx' not in st.session_state: st.session_state.current_player_idx = 0
 if 'used_categories' not in st.session_state: st.session_state.used_categories = {}
 
-# --- 5. SETUP ---
+# --- 5. SETUP & PROFILE MANAGEMENT ---
 if not st.session_state.game_active and not st.session_state.game_over:
     st.title("🎲 Double Cameroon")
-    c1, c2 = st.columns(2)
-    with c1:
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
         st.subheader("Manage Profiles")
-        new_p = st.text_input("New Player Name:")
-        if st.button("➕ Create Profile", key="create_btn") and new_p:
-            if new_p not in stats["Players"]:
-                stats["Players"][new_p] = {"high_score": 0}
+        new_player = st.text_input("New Player Name:")
+        if st.button("➕ Create Profile") and new_player:
+            if new_player not in stats["Players"]:
+                stats["Players"][new_player] = {"high_score": 0}
                 save_data(stats)
+                st.success(f"Added {new_player}!")
                 st.rerun()
-    with c2:
+        
+        delete_player = st.selectbox("Delete a Profile:", [""] + list(stats["Players"].keys()))
+        if st.button("🗑️ Delete Selected") and delete_player:
+            del stats["Players"][delete_player]
+            save_data(stats)
+            st.warning(f"Deleted {delete_player}")
+            st.rerun()
+
+    with col2:
         st.subheader("Start Game")
-        p_list = list(stats["Players"].keys())
-        sel = st.multiselect("Select Players:", p_list)
-        if st.button("🚀 Start Game", type="primary") and sel:
-            st.session_state.players = sel
+        selected = st.multiselect("Select Players for this Match:", list(stats["Players"].keys()))
+        if st.button("🚀 Start Game", type="primary") and selected:
+            st.session_state.players = selected
             st.session_state.current_player_idx = 0
-            st.session_state.used_categories = {p: [] for p in sel}
+            st.session_state.used_categories = {p: [] for p in selected}
             rows = ["1s", "2s", "3s", "4s", "5s", "6s", "Full House"]
-            st.session_state.master_scores = pd.DataFrame(0, index=rows, columns=sel)
-            st.session_state.trick_scores = pd.DataFrame(False, index=["Low Straight", "High Straight", "5 of a Kind"], columns=sel)
+            st.session_state.master_scores = pd.DataFrame(0, index=rows, columns=selected)
+            st.session_state.trick_scores = pd.DataFrame(False, index=["Low Straight", "High Straight", "5 of a Kind"], columns=selected)
             st.session_state.game_active = True
             st.rerun()
 
-# --- 6. GAMEPLAY ---
+# --- 6. SHOW GAMEPLAY ---
 if st.session_state.game_active and not st.session_state.game_over:
     current_p = st.session_state.players[st.session_state.current_player_idx]
     st.header(f"👤 {current_p}'s Turn")
@@ -158,26 +166,28 @@ if st.session_state.game_active and not st.session_state.game_over:
     st.write(f"**Rolls Left:** {st.session_state.rolls_left}")
 
     dice_faces = {0: "?", 1: "⚀", 2: "⚁", 3: "⚂", 4: "⚃", 5: "⚄", 6: "⚅"}
+    st.markdown('<div class="dice-tray">', unsafe_allow_html=True)
     d_cols = st.columns(10)
     for i in range(10):
         with d_cols[i]:
             inA, inB = i in st.session_state.trickA_indices, i in st.session_state.trickB_indices
             label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
-            st.button(label, key=f"v_{i}", disabled=True)
+            st.button(label, key=f"v_{i}", disabled=True, type="primary" if (inA or inB) else "secondary")
             
             c1, c2 = st.columns(2)
-            if c1.button("A", key=f"tA_{i}", type="primary" if inA else "secondary", disabled=not st.session_state.first_roll_made):
+            if c1.button("A", key=f"tA_{i}", disabled=not st.session_state.first_roll_made, type="primary" if inA else "secondary"):
                 if inA: st.session_state.trickA_indices.remove(i)
                 else: 
                     if inB: st.session_state.trickB_indices.remove(i)
                     st.session_state.trickA_indices.append(i)
                 st.rerun()
-            if c2.button("B", key=f"tB_{i}", type="primary" if inB else "secondary", disabled=not st.session_state.first_roll_made):
+            if c2.button("B", key=f"tB_{i}", disabled=not st.session_state.first_roll_made, type="primary" if inB else "secondary"):
                 if inB: st.session_state.trickB_indices.remove(i)
                 else:
                     if inA: st.session_state.trickA_indices.remove(i)
                     st.session_state.trickB_indices.append(i)
                 st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # --- 7. SCORING ---
     st.divider()
@@ -211,7 +221,6 @@ if st.session_state.game_active and not st.session_state.game_over:
             else:
                 st.session_state.master_scores.at[s, current_p] = calculate_score(v, s)
             st.session_state.used_categories[current_p].append(s)
-        
         st.session_state.dice, st.session_state.trickA_indices, st.session_state.trickB_indices = [0]*10, [], []
         st.session_state.rolls_left, st.session_state.first_roll_made = 3, False
         st.session_state.current_player_idx = (st.session_state.current_player_idx + 1) % len(st.session_state.players)
