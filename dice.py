@@ -10,29 +10,17 @@ def calculate_score(dice, category):
     dice.sort()
     counts = Counter(dice)
     target_map = {"1s": 1, "2s": 2, "3s": 3, "4s": 4, "5s": 5, "6s": 6}
-    
-    # 1s through 6s
     if category in target_map:
         target = target_map[category]
         score = sum(1 for d in dice if d != target) * target
-        return "-" if score == 0 else str(score)
+        return "-" if score == 0 else str(score) # Return "-" if 0
     
-    # Full House
     if category == "Full House":
         sorted_items = sorted(counts.items(), key=lambda x: (x[1], x[0]), reverse=True)
         three_val = sorted_items[0][0]
         two_val = sorted_items[1][0] if len(sorted_items) > 1 else three_val
         score = ((6 - three_val) * 3) + ((5 - two_val) * 2)
-        return "-" if score == 0 else str(score)
-    
-    # Straights and 5 of a Kind
-    if category == "Low Straight":
-        return "-" if dice == [1, 2, 3, 4, 5] else "25"
-    if category == "High Straight":
-        return "-" if dice == [2, 3, 4, 5, 6] else "30"
-    if category == "5 of a Kind":
-        return "-" if len(counts) == 1 else "50"
-        
+        return "-" if score == 0 else str(score) # Return "-" if 0
     return "0"
 
 # --- 2. CONFIG & DATA ---
@@ -146,28 +134,29 @@ if 'rolls_left' not in st.session_state: st.session_state.rolls_left = 3
 if 'current_player_idx' not in st.session_state: st.session_state.current_player_idx = 0
 if 'used_categories' not in st.session_state: st.session_state.used_categories = {}
 
-# --- 5. SETUP ---
+# --- 5. SETUP & PROFILE MANAGEMENT ---
 if not st.session_state.game_active and not st.session_state.game_over:
     st.title("🎲 Double Cameroon")
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("Manage Profiles")
-        new_p = st.text_input("New Player Name:")
-        if st.button("➕ Create Profile", key="create_profile_btn") and new_p:
-            if new_p not in stats["Players"]:
-                stats["Players"][new_p] = {"high_score": 0}
+        new_player = st.text_input("New Player Name:")
+        if st.button("➕ Create Profile", key="create_profile_btn") and new_player:
+            if new_player not in stats["Players"]:
+                stats["Players"][new_player] = {"high_score": 0}
                 save_data(stats)
                 st.rerun()
     with col2:
         st.subheader("Start Game")
-        selected = st.multiselect("Select Players:", list(stats["Players"].keys()))
+        selected = st.multiselect("Select Players for this Match:", list(stats["Players"].keys()))
         if st.button("🚀 Start Game", type="primary") and selected:
             st.session_state.players = selected
             st.session_state.current_player_idx = 0
             st.session_state.used_categories = {p: [] for p in selected}
-            # Combined all categories into one clean scorecard
-            rows = ["1s", "2s", "3s", "4s", "5s", "6s", "Full House", "Low Straight", "High Straight", "5 of a Kind"]
+            rows = ["1s", "2s", "3s", "4s", "5s", "6s", "Full House"]
+            # Initialize with empty strings for better visual tracking
             st.session_state.master_scores = pd.DataFrame("", index=rows, columns=selected)
+            st.session_state.trick_scores = pd.DataFrame(False, index=["Low Straight", "High Straight", "5 of a Kind"], columns=selected)
             st.session_state.game_active = True
             st.rerun()
 
@@ -193,8 +182,9 @@ if st.session_state.game_active and not st.session_state.game_over:
     for i in range(10):
         with d_cols[i]:
             inA, inB = i in st.session_state.trickA_indices, i in st.session_state.trickB_indices
+            is_held = inA or inB
             label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
-            st.button(label, key=f"v_{i}", disabled=True, type="primary" if (inA or inB) else "secondary")
+            st.button(label, key=f"v_{i}", disabled=True, type="primary" if is_held else "secondary")
             
             c1, c2 = st.columns(2)
             if c1.button("A", key=f"tA_{i}", disabled=not st.session_state.first_roll_made, type="primary" if inA else "secondary"):
@@ -213,27 +203,39 @@ if st.session_state.game_active and not st.session_state.game_over:
 
     # --- 7. SCORING ---
     st.divider()
-    tA_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickA_indices])
-    tB_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickB_indices])
+    tA_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickA_indices], reverse=True)
+    tB_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickB_indices], reverse=True)
     
-    def get_opts(player):
-        categories = ["1s", "2s", "3s", "4s", "5s", "6s", "Full House", "Low Straight", "High Straight", "5 of a Kind"]
-        return [c for c in categories if c not in st.session_state.used_categories[player]]
+    def get_opts(dice, player):
+        opts = ["1s", "2s", "3s", "4s", "5s", "6s"]
+        check_dice = sorted(dice)
+        counts = Counter(dice)
+        sorted_counts = sorted(counts.values(), reverse=True)
+        if (len(sorted_counts) == 2 and sorted_counts[0] >= 3 and sorted_counts[1] >= 2) or (len(sorted_counts) == 1 and sorted_counts[0] == 5):
+            opts.append("Full House")
+        if check_dice == [1, 2, 3, 4, 5]: opts.append("Low Straight")
+        if check_dice == [2, 3, 4, 5, 6]: opts.append("High Straight")
+        if len(sorted_counts) == 1 and sorted_counts[0] == 5: opts.append("5 of a Kind")
+        return [o for o in opts if o not in st.session_state.used_categories[player]]
 
-    unused_opts = get_opts(current_p)
     ca, cb = st.columns(2)
     with ca:
-        st.markdown(f"<div class='bank-header'>Trick A ({len(tA_vals)}/5)</div>", unsafe_allow_html=True)
-        sel_a = st.selectbox("Assign A:", ["Select Category"] + unused_opts, key="sA") if len(tA_vals) == 5 else None
+        st.markdown(f"<div class='bank-header'>Trick A ({len(tA_vals)}/5) &nbsp;&nbsp; {tA_vals if tA_vals else ''}</div>", unsafe_allow_html=True)
+        sel_a = st.selectbox("Assign A:", get_opts(tA_vals, current_p), key="sA") if len(tA_vals) == 5 else None
     with cb:
-        st.markdown(f"<div class='bank-header'>Trick B ({len(tB_vals)}/5)</div>", unsafe_allow_html=True)
-        filtered_b = [opt for opt in unused_opts if opt != sel_a]
-        sel_b = st.selectbox("Assign B:", ["Select Category"] + filtered_b, key="sB") if len(tB_vals) == 5 else None
+        st.markdown(f"<div class='bank-header'>Trick B ({len(tB_vals)}/5) &nbsp;&nbsp; {tB_vals if tB_vals else ''}</div>", unsafe_allow_html=True)
+        sel_b = st.selectbox("Assign B:", get_opts(tB_vals, current_p), key="sB") if len(tB_vals) == 5 else None
 
-    ready = sel_a and sel_b and sel_a != "Select Category" and sel_b != "Select Category"
-    if st.button("✅ Confirm Turn", use_container_width=True, disabled=not ready, type="primary"):
+    ready_to_confirm = len(tA_vals) == 5 and len(tB_vals) == 5
+    confirm_label = "✅ Confirm Turn" if ready_to_confirm else "Assign all dice to confirm"
+
+    if st.button(confirm_label, use_container_width=True, disabled=not (sel_a and sel_b), type="primary"):
         for s, v in [(sel_a, tA_vals), (sel_b, tB_vals)]:
-            st.session_state.master_scores.at[s, current_p] = calculate_score(v, s)
+            if s in ["Low Straight", "High Straight", "5 of a Kind"]:
+                st.session_state.trick_scores.at[s, current_p] = True
+            else:
+                # Store as string so we can display "-"
+                st.session_state.master_scores.at[s, current_p] = calculate_score(v, s)
             st.session_state.used_categories[current_p].append(s)
         st.session_state.dice, st.session_state.trickA_indices, st.session_state.trickB_indices = [0]*10, [], []
         st.session_state.rolls_left, st.session_state.first_roll_made = 3, False
@@ -244,4 +246,5 @@ if st.session_state.game_active and not st.session_state.game_over:
 if st.session_state.game_active:
     st.divider()
     st.subheader("📊 Scorecard")
-    st.table(st.session_state.master_scores)
+    st.data_editor(st.session_state.master_scores, use_container_width=True, disabled=True)
+    st.data_editor(st.session_state.trick_scores, use_container_width=True, disabled=True)
