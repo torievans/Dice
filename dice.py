@@ -259,40 +259,59 @@ with st.sidebar:
         st.session_state.current_player_idx = (st.session_state.current_player_idx + 1) % len(st.session_state.players)
         st.rerun()
 
-# --- 8. SCOREBOARD & RUNNING TOTALS ---
+# --- 8 & 9. TOTALS, WINNER, AND SCOREBOARD ---
 if st.session_state.game_active or st.session_state.game_over:
     st.divider()
+    
+    # 1. CALCULATE TOTALS
     totals = {}
     for p in st.session_state.players:
-        totals[p] = st.session_state.master_scores[p].apply(lambda x: int(x) if str(x).isdigit() else 0).sum()
+        totals[p] = st.session_state.master_scores[p].apply(
+            lambda x: int(x) if str(x).isdigit() else 0
+        ).sum()
 
-    st.subheader("📊 Current Penalty Totals (Lowest Wins!)")
+    # 2. CHECK FOR GAME OVER
+    all_finished = all(len(st.session_state.used_categories[p]) >= 10 for p in st.session_state.players)
+    
+    if all_finished:
+        if not st.session_state.game_over:
+            st.balloons()
+            st.session_state.game_over = True
+            st.session_state.game_active = False
+
+    # 3. WINNER ANNOUNCEMENT (Slotted above the scoreboard)
+    if st.session_state.game_over:
+        winner_name = min(totals, key=totals.get)
+        st.markdown(f"""
+            <div style="background-color:#ff4b4b; padding:30px; border-radius:15px; text-align:center; margin-bottom:25px;">
+                <h1 style="color:white; margin:0;">🏆 THE WINNER IS {winner_name.upper()}! 🏆</h1>
+                <p style="color:white; font-size:24px; margin:10px 0;">Final Penalty Score: {totals[winner_name]}</p>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button("🔄 Play Again", use_container_width=True, type="primary", key="restart_btn"):
+            st.session_state.game_over = False
+            st.session_state.game_active = False
+            st.rerun()
+
+    # 4. RUNNING TOTALS METRICS
+    st.subheader("📊 Penalty Totals (Lowest Wins!)")
     t_cols = st.columns(len(st.session_state.players))
     min_score = min(totals.values())
     
     for idx, p in enumerate(st.session_state.players):
-        t_cols[idx].metric(label=f"{p}'s Score", value=totals[p], delta="⭐ LEADING" if totals[p] == min_score else None)
+        t_cols[idx].metric(
+            label=f"{p}'s Score", 
+            value=totals[p], 
+            delta="⭐ LEADING" if totals[p] == min_score else None
+        )
 
     st.divider()
-    st.data_editor(st.session_state.master_scores, use_container_width=True, disabled=True, key="combined_table")
-
-# --- 9. WINNER ANNOUNCEMENT ---
-all_finished = all(len(st.session_state.used_categories[p]) >= 10 for p in st.session_state.players)
-
-if all_finished:
-    st.session_state.game_over = True
-    st.session_state.game_active = False
-    st.balloons()
     
-    winner_name = min(totals, key=totals.get)
-    st.markdown(f"""
-        <div style="background-color:#ff4b4b; padding:30px; border-radius:15px; text-align:center; margin-top:30px;">
-            <h1 style="color:white; margin:0;">🏆 THE WINNER IS {winner_name.upper()}! 🏆</h1>
-            <p style="color:white; font-size:24px; margin:10px 0;">Final Penalty Score: {totals[winner_name]}</p>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    if st.button("🔄 Play Again", use_container_width=True, type="primary"):
-        st.session_state.game_over = False
-        st.session_state.game_active = False
-        st.rerun()
+    # 5. THE SCOREBOARD
+    st.data_editor(
+        st.session_state.master_scores, 
+        use_container_width=True, 
+        disabled=True, 
+        key="combined_table"
+    )
