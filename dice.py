@@ -105,7 +105,6 @@ st.markdown("""
 for key in ['game_active', 'game_over', 'first_roll_made']:
     if key not in st.session_state: st.session_state[key] = False
 
-# Missing Keys Restored:
 if 'dice' not in st.session_state: st.session_state.dice = [0] * 10
 if 'trickA_indices' not in st.session_state: st.session_state.trickA_indices = []
 if 'trickB_indices' not in st.session_state: st.session_state.trickB_indices = []
@@ -122,7 +121,6 @@ def sync_manual_scores():
                 cat_name = st.session_state.master_scores.index[row_idx]
                 st.session_state.master_scores.at[cat_name, col_name] = val
         
-        # Immediately update used_categories for the Game Over check
         for p in st.session_state.players:
             st.session_state.used_categories[p] = [
                 cat for cat in st.session_state.master_scores.index 
@@ -137,8 +135,7 @@ with st.sidebar:
     st.session_state.game_mode = st.radio(
         "Mode Selector:", 
         ["Play Dice", "Score Only"], 
-        index=0 if st.session_state.game_mode == "Play Dice" else 1,
-        help="Play Dice: Interactive UI | Score Only: Manual entry for physical dice"
+        index=0 if st.session_state.game_mode == "Play Dice" else 1
     )
 
 # --- 5. SETUP ---
@@ -260,27 +257,29 @@ if st.session_state.game_active and not st.session_state.game_over:
             st.rerun()
     else:
         st.header("📝 Manual Score Entry")
-        st.info("Physical Dice Mode: Enter scores directly into the table below. Use '👌' for 0 penalty.")
+        st.info("""Physical Dice Mode: Enter scores directly into the table below.  
+Penalty points for not achieving certain tricks are as follows:  
+**Full House** - 28  
+**Low Straight** - 15  
+**High Straight** - 20  
+**5 of a Kind** - 30""")
 
-# --- 8 & 9. TOTALS, WINNER, AND SCOREBOARD (Standard Version) ---
+# --- 8 & 9. TOTALS, WINNER, AND SCOREBOARD ---
 if st.session_state.game_active or st.session_state.game_over:
     st.divider()
     
-    # Calculate Totals
     totals = {}
     for p in st.session_state.players:
         totals[p] = st.session_state.master_scores[p].apply(
             lambda x: int(x) if str(x).isdigit() else 0
         ).sum()
 
-    # End Game Check
     all_finished = all(len(st.session_state.used_categories[p]) >= 10 for p in st.session_state.players)
     if all_finished and not st.session_state.game_over:
         st.balloons()
         st.session_state.game_over = True
         st.session_state.game_active = False
 
-    # Winner Announcement
     if st.session_state.game_over:
         winner_name = min(totals, key=totals.get)
         st.markdown(f"""
@@ -294,7 +293,6 @@ if st.session_state.game_active or st.session_state.game_over:
             st.session_state.game_active = False
             st.rerun()
 
-    # Metrics
     st.subheader("📊 Score (Lowest Wins!)")
     t_cols = st.columns(len(st.session_state.players))
     min_score = min(totals.values())
@@ -304,7 +302,6 @@ if st.session_state.game_active or st.session_state.game_over:
 
     st.divider()
     
-    # The Table
     is_manual = st.session_state.game_mode == "Score Only"
     st.data_editor(
         st.session_state.master_scores, 
