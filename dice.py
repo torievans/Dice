@@ -243,11 +243,11 @@ if st.session_state.game_active and not st.session_state.game_over:
         st.header("📝 Manual Score Entry")
         st.info("Physical Dice Mode: Enter scores directly into the table below. Use '👌' for 0 penalty.")
 
-# --- 8 & 9. TOTALS, WINNER, AND SCOREBOARD (Final Optimized Fragment) ---
+# --- 8 & 9. THE ISOLATED SCOREBOARD ---
 
 @st.fragment
 def render_scoreboard():
-    # 1. SYNC: Catch edits from the table immediately inside the fragment
+    # 1. INTERNAL SYNC: Process table edits without waking up the whole app
     if "main_table" in st.session_state:
         edits = st.session_state["main_table"].get("edited_rows", {})
         if edits:
@@ -256,35 +256,25 @@ def render_scoreboard():
                     cat_name = st.session_state.master_scores.index[row_idx]
                     st.session_state.master_scores.at[cat_name, col_name] = val
             
-            # Update used categories so the End Game Check knows which rows are filled
+            # Update used_categories locally
             for p in st.session_state.players:
                 st.session_state.used_categories[p] = [
                     cat for cat in st.session_state.master_scores.index 
                     if str(st.session_state.master_scores.at[cat, p]).strip() != ""
                 ]
 
-    st.divider()
-    
     # 2. CALCULATE TOTALS
     totals = {}
     for p in st.session_state.players:
-        # Sum digits, treat 👌 and empty cells as 0
         totals[p] = st.session_state.master_scores[p].apply(
             lambda x: int(x) if str(x).isdigit() else 0
         ).sum()
 
-    # 3. END GAME LOGIC
-    # Check if all 10 categories are filled for everyone
+    # 3. WINNER CHECK (No st.rerun here!)
     all_finished = all(len(st.session_state.used_categories[p]) >= 10 for p in st.session_state.players)
     
     if all_finished:
-        if not st.session_state.game_over:
-            st.balloons()
-            st.session_state.game_over = True
-            st.session_state.game_active = False
-
-    # 4. WINNER ANNOUNCEMENT (Slotted above Metrics)
-    if st.session_state.game_over:
+        st.balloons()
         winner_name = min(totals, key=totals.get)
         st.markdown(f"""
             <div style="background-color:#ff4b4b; padding:30px; border-radius:15px; text-align:center; margin-bottom:25px;">
@@ -293,16 +283,16 @@ def render_scoreboard():
             </div>
         """, unsafe_allow_html=True)
         
+        # Only rerun when they explicitly click "Play Again" to reset the game
         if st.button("🔄 Play Again", use_container_width=True, type="primary", key="restart_btn"):
             st.session_state.game_over = False
             st.session_state.game_active = False
             st.rerun()
 
-    # 5. METRICS (Running Totals)
+    # 4. METRICS
     st.subheader("📊 Penalty Totals (Lowest Wins!)")
     t_cols = st.columns(len(st.session_state.players))
     min_score = min(totals.values())
-    
     for idx, p in enumerate(st.session_state.players):
         t_cols[idx].metric(
             label=f"{p}'s Score", 
@@ -312,7 +302,7 @@ def render_scoreboard():
 
     st.divider()
     
-    # 6. THE EDITABLE TABLE
+    # 5. THE TABLE
     is_manual = st.session_state.game_mode == "Score Only"
     st.data_editor(
         st.session_state.master_scores, 
@@ -321,6 +311,6 @@ def render_scoreboard():
         key="main_table"
     )
 
-# Logic to call the fragment
+# --- CALL THE FRAGMENT ---
 if st.session_state.game_active or st.session_state.game_over:
     render_scoreboard()
