@@ -56,7 +56,7 @@ st.markdown("""
         border-right: 1px solid #eeeeee !important;
     }
 
-    /* Target the button container and the button itself */
+    /* Sidebar buttons and arrows */
     div[data-testid="stSidebarCollapseButton"] button, 
     div[data-testid="stSidebarCloseButton"] button {
         background-color: white !important;
@@ -64,7 +64,6 @@ st.markdown("""
         border: 1px solid #eeeeee !important;
     }
 
-    /* Target the SVG icon (the arrows) inside the buttons */
     div[data-testid="stSidebarCollapseButton"] svg, 
     div[data-testid="stSidebarCloseButton"] svg {
         fill: black !important;
@@ -76,12 +75,12 @@ st.markdown("""
         background-color: white !important;
     }
 
-    /* Ensure all text across the app is black */
+    /* Force all general text to black */
     h1, h2, h3, h4, p, span, label, li, div[data-testid="stMarkdownContainer"] p {
         color: black !important;
     }
 
-    /* 4. MEGA DICE STYLING (Restored) */
+    /* 4. MEGA DICE STYLING */
     div[data-testid="stColumn"] > div > div > button {
         height: 150px !important;
         width: 120px !important;
@@ -118,8 +117,6 @@ st.markdown("""
     }
     .stDataFrame thead tr th { background-color: #f8f9fa !important; color: black !important; }
     .stDataFrame tbody tr td { background-color: white !important; color: black !important; }
-    </style>
-    """, unsafe_allow_html=True)
 
     /* 6. MULTISELECT / DROPDOWN FIX */
     
@@ -150,6 +147,8 @@ st.markdown("""
         background-color: #f0f2f6 !important;
         color: black !important;
     }
+    </style>
+    """, unsafe_allow_html=True)
 
 # --- 4. INITIALIZE STATE & SYNC ---
 for key in ['game_active', 'game_over', 'first_roll_made']:
