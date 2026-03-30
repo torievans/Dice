@@ -139,43 +139,34 @@ if not st.session_state.game_active and not st.session_state.game_over:
 # --- 6. SHOW GAMEPLAY ---
 if st.session_state.game_active and not st.session_state.game_over:
     current_p = st.session_state.players[st.session_state.current_player_idx]
+    
+    # Check if this player has finished all categories
+    total_needed = len(st.session_state.master_scores.index) + len(st.session_state.trick_scores.index)
+    if len(st.session_state.used_categories[current_p]) >= total_needed:
+        # Move to next player or end game
+        if st.session_state.current_player_idx < len(st.session_state.players) - 1:
+            st.session_state.current_player_idx += 1
+            st.rerun()
+        else:
+            st.session_state.game_over = True
+            st.rerun()
+
     st.header(f"👤 {current_p}'s Turn")
     
-    if st.button("🎲 ROLL DICE", use_container_width=True, type="primary", disabled=st.session_state.rolls_left == 0):
-        locked = st.session_state.trickA_indices + st.session_state.trickB_indices
-        for i in range(10):
-            if i not in locked:
-                st.session_state.dice[i] = random.randint(1, 6)
-        st.session_state.rolls_left -= 1
-        st.session_state.first_roll_made = True
-        st.rerun()
+    # STRICT ROLL BUTTON
+    # 1. 'disabled' attribute stops the UI click
+    # 2. The 'if' check inside stops the logic if clicks overlap
+    if st.button("🎲 ROLL DICE", use_container_width=True, type="primary", disabled=st.session_state.rolls_left <= 0):
+        if st.session_state.rolls_left > 0:  # SERVER-SIDE GUARD
+            locked = st.session_state.trickA_indices + st.session_state.trickB_indices
+            for i in range(10):
+                if i not in locked:
+                    st.session_state.dice[i] = random.randint(1, 6)
+            st.session_state.rolls_left -= 1
+            st.session_state.first_roll_made = True
+            st.rerun()
 
-    st.write(f"**Rolls Left:** {st.session_state.rolls_left}")
-
-    dice_faces = {0: "?", 1: "⚀", 2: "⚁", 3: "⚂", 4: "⚃", 5: "⚄", 6: "⚅"}
-    st.markdown('<div class="dice-tray">', unsafe_allow_html=True)
-    d_cols = st.columns(10)
-    for i in range(10):
-        with d_cols[i]:
-            inA, inB = i in st.session_state.trickA_indices, i in st.session_state.trickB_indices
-            is_held = inA or inB
-            label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
-            st.button(label, key=f"v_{i}", disabled=True, type="primary" if is_held else "secondary")
-            
-            c1, c2 = st.columns(2)
-            if c1.button("A", key=f"tA_{i}", disabled=not st.session_state.first_roll_made, type="primary" if inA else "secondary"):
-                if inA: st.session_state.trickA_indices.remove(i)
-                else: 
-                    if inB: st.session_state.trickB_indices.remove(i)
-                    st.session_state.trickA_indices.append(i)
-                st.rerun()
-            if c2.button("B", key=f"tB_{i}", disabled=not st.session_state.first_roll_made, type="primary" if inB else "secondary"):
-                if inB: st.session_state.trickB_indices.remove(i)
-                else:
-                    if inA: st.session_state.trickA_indices.remove(i)
-                    st.session_state.trickB_indices.append(i)
-                st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.write(f"**Rolls Left:** {max(0, st.session_state.rolls_left)}") # Prevents showing negative numbers
 
    # --- 7. SCORING ---
     st.divider()
