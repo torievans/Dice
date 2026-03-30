@@ -104,7 +104,15 @@ st.markdown("""
 # --- 4. INITIALIZE STATE & SYNC ---
 for key in ['game_active', 'game_over', 'first_roll_made']:
     if key not in st.session_state: st.session_state[key] = False
-# ... (rest of your init keys) ...
+
+# Missing Keys Restored:
+if 'dice' not in st.session_state: st.session_state.dice = [0] * 10
+if 'trickA_indices' not in st.session_state: st.session_state.trickA_indices = []
+if 'trickB_indices' not in st.session_state: st.session_state.trickB_indices = []
+if 'rolls_left' not in st.session_state: st.session_state.rolls_left = 3
+if 'current_player_idx' not in st.session_state: st.session_state.current_player_idx = 0
+if 'used_categories' not in st.session_state: st.session_state.used_categories = {}
+if 'game_mode' not in st.session_state: st.session_state.game_mode = "Play Dice"
 
 def sync_manual_scores():
     if "main_table" in st.session_state:
@@ -287,7 +295,7 @@ if st.session_state.game_active or st.session_state.game_over:
             st.rerun()
 
     # Metrics
-    st.subheader("📊 Penalty Totals (Lowest Wins!)")
+    st.subheader("📊 Score (Lowest Wins!)")
     t_cols = st.columns(len(st.session_state.players))
     min_score = min(totals.values())
     for idx, p in enumerate(st.session_state.players):
