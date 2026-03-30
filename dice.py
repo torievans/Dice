@@ -41,51 +41,63 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. HIGH-PRIORITY MEGA DICE CSS ---
+# --- 3. RESTORED MEGA DICE CSS ---
 st.markdown("""
     <style>
-    /* 1. Global Page Background Fix */
-    .stApp { background-color: white !important; }
+    .stApp, .stDataFrame, div[data-testid="stColumn"], div[data-testid="stHorizontalBlock"] {
+        background-color: white !important;
+        color: black !important;
+    }
+    h1, h2, h3, h4, p, span, label, div[data-testid="stMarkdownContainer"] p {
+        color: black !important;
+    }
+    .stDataFrame thead tr th { background-color: #f8f9fa !important; color: black !important; }
+    .stDataFrame tbody tr td { background-color: white !important; color: black !important; }
 
-    /* 2. Target the 10 columns for the dice */
-    [data-testid="stHorizontalBlock"] div[data-testid="stColumn"] button[key^="v_"] {
+    /* MEGA DICE STYLING */
+    div[data-testid="column"] > div > div > button {
         height: 150px !important;
-        width: 100% !important;
-        min-width: 100px !important;
+        width: 120px !important;
         background-color: white !important;
         border: 2px solid #eeeeee !important;
         border-radius: 15px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
     }
+    div[data-testid="column"] button p { font-size: 160px !important; color: black !important; }
 
-    /* 3. Force the Emoji Size */
-    [data-testid="stHorizontalBlock"] div[data-testid="stColumn"] button[key^="v_"] p {
-        font-size: 110px !important; /* Adjusted slightly to fit container better */
-        line-height: 1 !important;
-        color: black !important;
-        margin: 0 !important;
-        padding: 0 !important;
+    /* HELD DICE FUNCTIONALITY */
+    div[data-testid="column"] button[kind="primary"] {
+        background-color: #f8f9fa !important;
+        border: 2px solid #cccccc !important;
     }
+    div[data-testid="column"] button[kind="primary"] p { color: #999999 !important; }
 
-    /* 4. Held Dice (Primary) Colors */
-    [data-testid="stHorizontalBlock"] div[data-testid="stColumn"] button[key^="v_"][kind="primary"] {
+    /* Small A/B Buttons */
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
+        height: 35px !important;
         background-color: #f0f2f6 !important;
-        border-color: #ff4b4b !important;
+        border: 1px solid #d1d5db !important;
     }
-    [data-testid="stHorizontalBlock"] div[data-testid="stColumn"] button[key^="v_"][kind="primary"] p {
-        color: #ff4b4b !important;
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button p {
+        font-size: 16px !important; color: black !important; font-weight: bold !important;
     }
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] {
+        background-color: #ff4b4b !important;
+    }
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] p { color: white !important; }
 
-    /* 5. Keep A/B and other buttons normal size */
-    button:not([key^="v_"]) {
-        height: auto !important;
+    button[kind="primary"] p { color: white !important; }
+
+    button[key="create_profile_btn"] {
+        background-color: #ff4b4b !important;
+        border: none !important;
     }
-    button[key^="t"] p {
-        font-size: 14px !important;
-        font-weight: bold !important;
+    button[key="create_profile_btn"] p { color: white !important; }
+
+    .bank-header {
+        background-color: #f8f9fa !important; color: black !important; padding: 10px 20px !important;
+        border-radius: 10px !important; text-align: center !important; border: 1px solid #dee2e6 !important;
     }
+    .dice-tray { display: flex !important; justify-content: center !important; width: 100% !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -151,7 +163,7 @@ if st.session_state.game_active and not st.session_state.game_over:
             with d_cols[i]:
                 inA, inB = i in st.session_state.trickA_indices, i in st.session_state.trickB_indices
                 label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
-                st.button(label, key=f"v_{i}", type="primary" if (inA or inB) else "secondary")
+                st.button(label, key=f"v_{i}", disabled=True, type="primary" if (inA or inB) else "secondary")
                 
                 c1, c2 = st.columns(2)
                 if c1.button("A", key=f"tA_{i}", disabled=not st.session_state.first_roll_made, type="primary" if inA else "secondary"):
@@ -227,17 +239,14 @@ if st.session_state.game_active and not st.session_state.game_over:
 if st.session_state.game_active or st.session_state.game_over:
     st.divider()
     
-    # 1. Calculation
     totals = {}
     for p in st.session_state.players:
         totals[p] = st.session_state.master_scores[p].apply(lambda x: int(x) if str(x).isdigit() else 0).sum()
 
-    # 2. End Game Check
     all_finished = all(len(st.session_state.used_categories[p]) >= 10 for p in st.session_state.players)
     if all_finished and not st.session_state.game_over:
         st.balloons(); st.session_state.game_over, st.session_state.game_active = True, False
 
-    # 3. Winner Announcement (Slotted above the Metrics/Table)
     if st.session_state.game_over:
         winner = min(totals, key=totals.get)
         st.markdown(f"""<div style="background-color:#ff4b4b; padding:30px; border-radius:15px; text-align:center; margin-bottom:25px;">
@@ -248,7 +257,6 @@ if st.session_state.game_active or st.session_state.game_over:
             st.session_state.game_over, st.session_state.game_active = False, False
             st.rerun()
 
-    # 4. Metrics
     st.subheader("📊 Penalty Totals")
     t_cols = st.columns(len(st.session_state.players))
     min_score = min(totals.values())
@@ -257,7 +265,6 @@ if st.session_state.game_active or st.session_state.game_over:
 
     st.divider()
     
-    # 5. Table (Editable if Score Only)
     is_manual = st.session_state.get("game_mode") == "Score Only"
     edited_df = st.data_editor(st.session_state.master_scores, use_container_width=True, disabled=not is_manual, key="main_table")
     
