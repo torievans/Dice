@@ -101,16 +101,27 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 4. INITIALIZE STATE ---
+# --- 4. INITIALIZE STATE & SYNC ---
 for key in ['game_active', 'game_over', 'first_roll_made']:
     if key not in st.session_state: st.session_state[key] = False
-if 'dice' not in st.session_state: st.session_state.dice = [0] * 10
-if 'trickA_indices' not in st.session_state: st.session_state.trickA_indices = []
-if 'trickB_indices' not in st.session_state: st.session_state.trickB_indices = []
-if 'rolls_left' not in st.session_state: st.session_state.rolls_left = 3
-if 'current_player_idx' not in st.session_state: st.session_state.current_player_idx = 0
-if 'used_categories' not in st.session_state: st.session_state.used_categories = {}
-if 'game_mode' not in st.session_state: st.session_state.game_mode = "Play Dice"
+# ... (rest of your init keys) ...
+
+def sync_manual_scores():
+    if "main_table" in st.session_state:
+        edits = st.session_state["main_table"].get("edited_rows", {})
+        for row_idx, col_map in edits.items():
+            for col_name, val in col_map.items():
+                cat_name = st.session_state.master_scores.index[row_idx]
+                st.session_state.master_scores.at[cat_name, col_name] = val
+        
+        # Immediately update used_categories for the Game Over check
+        for p in st.session_state.players:
+            st.session_state.used_categories[p] = [
+                cat for cat in st.session_state.master_scores.index 
+                if str(st.session_state.master_scores.at[cat, p]).strip() != ""
+            ]
+
+sync_manual_scores()
 
 # --- SIDEBAR (Mode Selection) ---
 with st.sidebar:
@@ -243,38 +254,26 @@ if st.session_state.game_active and not st.session_state.game_over:
         st.header("📝 Manual Score Entry")
         st.info("Physical Dice Mode: Enter scores directly into the table below. Use '👌' for 0 penalty.")
 
-# --- 8 & 9. THE ISOLATED SCOREBOARD ---
-
-@st.fragment
-def render_scoreboard():
-    # 1. INTERNAL SYNC: Process table edits without waking up the whole app
-    if "main_table" in st.session_state:
-        edits = st.session_state["main_table"].get("edited_rows", {})
-        if edits:
-            for row_idx, col_map in edits.items():
-                for col_name, val in col_map.items():
-                    cat_name = st.session_state.master_scores.index[row_idx]
-                    st.session_state.master_scores.at[cat_name, col_name] = val
-            
-            # Update used_categories locally
-            for p in st.session_state.players:
-                st.session_state.used_categories[p] = [
-                    cat for cat in st.session_state.master_scores.index 
-                    if str(st.session_state.master_scores.at[cat, p]).strip() != ""
-                ]
-
-    # 2. CALCULATE TOTALS
+# --- 8 & 9. TOTALS, WINNER, AND SCOREBOARD (Standard Version) ---
+if st.session_state.game_active or st.session_state.game_over:
+    st.divider()
+    
+    # Calculate Totals
     totals = {}
     for p in st.session_state.players:
         totals[p] = st.session_state.master_scores[p].apply(
             lambda x: int(x) if str(x).isdigit() else 0
         ).sum()
 
-    # 3. WINNER CHECK (No st.rerun here!)
+    # End Game Check
     all_finished = all(len(st.session_state.used_categories[p]) >= 10 for p in st.session_state.players)
-    
-    if all_finished:
+    if all_finished and not st.session_state.game_over:
         st.balloons()
+        st.session_state.game_over = True
+        st.session_state.game_active = False
+
+    # Winner Announcement
+    if st.session_state.game_over:
         winner_name = min(totals, key=totals.get)
         st.markdown(f"""
             <div style="background-color:#ff4b4b; padding:30px; border-radius:15px; text-align:center; margin-bottom:25px;">
@@ -282,27 +281,22 @@ def render_scoreboard():
                 <p style="color:white; font-size:24px; margin:10px 0;">Final Penalty Score: {totals[winner_name]}</p>
             </div>
         """, unsafe_allow_html=True)
-        
-        # Only rerun when they explicitly click "Play Again" to reset the game
-        if st.button("🔄 Play Again", use_container_width=True, type="primary", key="restart_btn"):
+        if st.button("🔄 Play Again", use_container_width=True, type="primary"):
             st.session_state.game_over = False
             st.session_state.game_active = False
             st.rerun()
 
-    # 4. METRICS
+    # Metrics
     st.subheader("📊 Penalty Totals (Lowest Wins!)")
     t_cols = st.columns(len(st.session_state.players))
     min_score = min(totals.values())
     for idx, p in enumerate(st.session_state.players):
-        t_cols[idx].metric(
-            label=f"{p}'s Score", 
-            value=totals[p], 
-            delta="⭐ LEADING" if totals[p] == min_score else None
-        )
+        t_cols[idx].metric(label=f"{p}'s Score", value=totals[p], 
+                           delta="⭐ LEADING" if totals[p] == min_score else None)
 
     st.divider()
     
-    # 5. THE TABLE
+    # The Table
     is_manual = st.session_state.game_mode == "Score Only"
     st.data_editor(
         st.session_state.master_scores, 
@@ -310,7 +304,3 @@ def render_scoreboard():
         disabled=not is_manual, 
         key="main_table"
     )
-
-# --- CALL THE FRAGMENT ---
-if st.session_state.game_active or st.session_state.game_over:
-    render_scoreboard()
