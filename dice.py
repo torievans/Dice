@@ -252,9 +252,52 @@ if st.session_state.game_active and not st.session_state.game_over:
         st.session_state.current_player_idx = (st.session_state.current_player_idx + 1) % len(st.session_state.players)
         st.rerun()
         
-# --- 8. SCOREBOARD ---
-if st.session_state.game_active:
+# --- 8. SCOREBOARD & TOTALS ---
+if st.session_state.game_active or st.session_state.game_over:
     st.divider()
-    st.subheader("📊 Scorecard")
-    st.data_editor(st.session_state.master_scores, use_container_width=True, disabled=True)
-    st.data_editor(st.session_state.trick_scores, use_container_width=True, disabled=True)
+    
+    # 1. CALCULATE RUNNING TOTALS
+    # We convert strings/emojis to 0, then sum the numeric penalty strings
+    totals = {}
+    for p in st.session_state.players:
+        # Sum Master Table (1s-6s, Full House)
+        m_vals = st.session_state.master_scores[p].apply(
+            lambda x: int(x) if str(x).isdigit() else 0
+        ).sum()
+        
+        # Sum Trick Table (Straights, 5 of a Kind)
+        t_vals = st.session_state.trick_scores[p].apply(
+            lambda x: int(x) if str(x).isdigit() else 0
+        ).sum()
+        
+        totals[p] = m_vals + t_vals
+
+    # 2. DISPLAY TOTALS ABOVE TABLES
+    st.subheader("📊 Current Penalty Totals (Lowest Wins!)")
+    
+    # Create a column for each player's total
+    t_cols = st.columns(len(st.session_state.players))
+    min_score = min(totals.values())
+    
+    for idx, p in enumerate(st.session_state.players):
+        is_winning = totals[p] == min_score
+        t_cols[idx].metric(
+            label=f"{p}'s Score", 
+            value=totals[p], 
+            delta="⭐ LEADING" if is_winning else None,
+            delta_color="normal"
+        )
+
+    st.divider()
+
+    # 3. RENDER DATA TABLES
+    st.data_editor(st.session_state.master_scores, use_container_width=True, disabled=True, key="master_table")
+    st.data_editor(st.session_state.trick_scores, use_container_width=True, disabled=True, key="trick_table")
+
+    # 4. CHECK FOR GAME OVER
+    # Total categories per player = 7 (Master) + 3 (Tricks) = 10 total turns
+    all_finished = all(len(st.session_state.used_categories[p]) >= 10 for p in st.session_state.players)
+    
+    if all_finished:
+        st.session_state.game_over = True
+        st.session_state.game_active = False
