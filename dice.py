@@ -41,91 +41,109 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. THE "PERFECT FINISH" OVERRIDE CSS ---
+# --- 3. THE "TOTAL WHITEOUT" OVERRIDE CSS ---
 st.markdown("""
     <style>
-    /* 1. GLOBAL & HEADER */
-    header[data-testid="stHeader"], .stApp {
+    /* 1. TOP HEADER & GLOBAL */
+    header[data-testid="stHeader"] {
+        background-color: white !important;
+        color: black !important;
+    }
+    .stApp {
         background-color: white !important;
     }
     h1, h2, h3, h4, p, span, label, li, div[data-testid="stMarkdownContainer"] p {
         color: black !important;
     }
 
-    /* 2. BUTTON SYNC (Create Profile & Start Game) */
-    /* This targets the red action buttons specifically to make them look identical */
-    button[key="create_profile_btn"], 
-    div[data-testid="stColumn"] + div[data-testid="stColumn"] button[kind="primary"] {
-        background-color: #ff4b4b !important;
-        color: white !important;
-        height: 60px !important; /* Professional height vs the 150px dice */
-        width: 100% !important;
-        border: none !important;
-        border-radius: 10px !important;
-        font-weight: bold !important;
-    }
-    
-    /* Ensure the text inside those buttons is white */
-    button[key="create_profile_btn"] p, 
-    div[data-testid="stColumn"] + div[data-testid="stColumn"] button[kind="primary"] p {
-        color: white !important;
-        font-size: 20px !important;
-    }
-
-    /* 3. DROPDOWN / MULTISELECT FIX */
-    div[data-baseweb="select"] > div, 
-    div[data-baseweb="popover"], 
-    div[role="listbox"], 
-    ul[role="listbox"] {
+    /* 2. SIDEBAR FIX */
+    [data-testid="stSidebar"] {
         background-color: white !important;
-        color: black !important;
+        border-right: 1px solid #eeeeee !important;
     }
-    div[data-baseweb="popover"] *, div[role="listbox"] * {
-        color: black !important;
-    }
-    span[data-baseweb="tag"] {
-        background-color: #f0f2f6 !important;
-        color: black !important;
-    }
-
-    /* 4. MEGA DICE STYLING (Only triggers during active gameplay) */
-    /* We use a more specific selector so it doesn't break the setup buttons */
-    .dice-tray div[data-testid="stColumn"] > div > div > button {
-        height: 150px !important;
-        width: 120px !important;
-        background-color: white !important;
-        border: 2px solid #eeeeee !important;
-        border-radius: 15px !important;
-    }
-    .dice-tray div[data-testid="stColumn"] button p { 
-        font-size: 160px !important; 
-        color: black !important; 
-    }
-
-    /* 5. DATA TABLE STYLING */
-    .stDataFrame, .stDataEditor { background-color: white !important; }
-    .stDataFrame thead tr th { background-color: #f8f9fa !important; color: black !important; }
-    .stDataFrame tbody tr td { background-color: white !important; color: black !important; }
-
-    /* 6. SIDEBAR FIX */
-    [data-testid="stSidebar"] { background-color: white !important; border-right: 1px solid #eeeeee !important; }
     div[data-testid="stSidebarCollapseButton"] button, 
     div[data-testid="stSidebarCloseButton"] button {
         background-color: white !important;
         color: black !important;
         border: 1px solid #eeeeee !important;
     }
-    div[data-testid="stSidebarCollapseButton"] svg { fill: black !important; }
+    div[data-testid="stSidebarCollapseButton"] svg, 
+    div[data-testid="stSidebarCloseButton"] svg {
+        fill: black !important;
+        color: black !important;
+    }
 
-    /* 7. Small A/B Buttons */
+    /* 3. MULTISELECT / DROPDOWN (PORTAL FIX) */
+    
+    /* Targets the floating box that appears when you click the dropdown */
+    div[data-baseweb="popover"], 
+    div[role="listbox"], 
+    ul[role="listbox"] {
+        background-color: white !important;
+        color: black !important;
+    }
+
+    /* Targets the individual items (Tori, Tom, etc.) */
+    div[data-baseweb="popover"] li, 
+    div[role="listbox"] li, 
+    ul[role="listbox"] li {
+        background-color: white !important;
+        color: black !important;
+    }
+
+    /* Change the text color of the options specifically */
+    div[data-baseweb="popover"] * {
+        color: black !important;
+    }
+
+    /* Hover effect for items in the dropdown */
+    div[data-baseweb="popover"] li:hover {
+        background-color: #f0f2f6 !important;
+    }
+
+    /* Selected "tags/chips" in the input box */
+    span[data-baseweb="tag"] {
+        background-color: #f0f2f6 !important;
+        color: black !important;
+    }
+
+    /* 4. MEGA DICE STYLING */
+    div[data-testid="stColumn"] > div > div > button {
+        height: 150px !important;
+        width: 120px !important;
+        background-color: white !important;
+        border: 2px solid #eeeeee !important;
+        border-radius: 15px !important;
+    }
+    div[data-testid="stColumn"] button p { font-size: 160px !important; color: black !important; }
+
+    /* HELD DICE */
+    div[data-testid="stColumn"] button[kind="primary"] {
+        background-color: #f8f9fa !important;
+        border: 2px solid #cccccc !important;
+    }
+    div[data-testid="stColumn"] button[kind="primary"] p { color: #999999 !important; }
+
+    /* 5. DATA TABLE STYLING */
+    .stDataFrame, .stDataEditor {
+        background-color: white !important;
+    }
+    .stDataFrame thead tr th { background-color: #f8f9fa !important; color: black !important; }
+    .stDataFrame tbody tr td { background-color: white !important; color: black !important; }
+
+    /* Small A/B Buttons */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
         height: 35px !important;
         background-color: #f0f2f6 !important;
         border: 1px solid #d1d5db !important;
     }
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button p {
-        font-size: 16px !important; color: black !important;
+        font-size: 16px !important; color: black !important; font-weight: bold !important;
     }
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] {
+        background-color: #ff4b4b !important;
+    }
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] p { color: white !important; }
     </style>
     """, unsafe_allow_html=True)
 
