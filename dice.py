@@ -130,9 +130,9 @@ if not st.session_state.game_active and not st.session_state.game_over:
             st.session_state.players = selected
             st.session_state.current_player_idx = 0
             st.session_state.used_categories = {p: [] for p in selected}
-            rows = ["1s", "2s", "3s", "4s", "5s", "6s", "Full House"]
+            # Combined Rows into One Table
+            rows = ["1s", "2s", "3s", "4s", "5s", "6s", "Full House", "Low Straight", "High Straight", "5 of a Kind"]
             st.session_state.master_scores = pd.DataFrame("", index=rows, columns=selected)
-            st.session_state.trick_scores = pd.DataFrame("", index=["Low Straight", "High Straight", "5 of a Kind"], columns=selected)
             st.session_state.game_active = True
             st.rerun()
 
@@ -141,7 +141,6 @@ if st.session_state.game_active and not st.session_state.game_over:
     current_p = st.session_state.players[st.session_state.current_player_idx]
     st.header(f"👤 {current_p}'s Turn")
     
-    # 1. STRICT ROLL BUTTON: UI-level disable + Server-side check
     if st.button("🎲 ROLL DICE", use_container_width=True, type="primary", key="main_roll_btn", disabled=st.session_state.rolls_left <= 0):
         if st.session_state.rolls_left > 0:
             locked = st.session_state.trickA_indices + st.session_state.trickB_indices
@@ -152,7 +151,6 @@ if st.session_state.game_active and not st.session_state.game_over:
             st.session_state.first_roll_made = True
             st.rerun()
 
-    # Visual safety: Use max(0, ...) so the user never sees "-1"
     st.write(f"**Rolls Left:** {max(0, st.session_state.rolls_left)}")
 
     dice_faces = {0: "?", 1: "⚀", 2: "⚁", 3: "⚂", 4: "⚃", 5: "⚄", 6: "⚅"}
@@ -163,12 +161,9 @@ if st.session_state.game_active and not st.session_state.game_over:
             inA, inB = i in st.session_state.trickA_indices, i in st.session_state.trickB_indices
             is_held = inA or inB
             label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
-            
-            # GIANT DIE: Marked primary (grey) if in A or B
             st.button(label, key=f"v_{i}", disabled=True, type="primary" if is_held else "secondary")
             
             c1, c2 = st.columns(2)
-            # SELECTION BUTTONS (A/B)
             if c1.button("A", key=f"tA_{i}", disabled=not st.session_state.first_roll_made, type="primary" if inA else "secondary"):
                 if inA: st.session_state.trickA_indices.remove(i)
                 else: 
@@ -185,7 +180,6 @@ if st.session_state.game_active and not st.session_state.game_over:
 
     # --- 7. SCORING ---
     st.divider()
-    # Sort dice values for easier logic checks
     tA_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickA_indices])
     tB_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickB_indices])
     
@@ -201,149 +195,81 @@ if st.session_state.game_active and not st.session_state.game_over:
         sel_a = st.selectbox("Assign A:", ["Select Category"] + unused_opts, key="sA") if len(tA_vals) == 5 else None
     with cb:
         st.markdown(f"<div class='bank-header'>Trick B ({len(tB_vals)}/5) &nbsp;&nbsp; {tB_vals if tB_vals else ''}</div>", unsafe_allow_html=True)
-        # Prevent picking the same category for both banks in one turn
         filtered_b = [opt for opt in unused_opts if opt != sel_a]
         sel_b = st.selectbox("Assign B:", ["Select Category"] + filtered_b, key="sB") if len(tB_vals) == 5 else None
 
-    # THE LABEL: This changes text but the 'key' below stays the same to prevent errors
     full_tray = (len(tA_vals) == 5 and len(tB_vals) == 5)
     confirm_label = "✅ Confirm Turn" if full_tray else "Assign all dice to confirm"
     ready = full_tray and sel_a and sel_b and sel_a != "Select Category" and sel_b != "Select Category"
 
-    # THE FIX: Unique key="confirm_turn_btn" prevents DuplicateElementId error
     if st.button(confirm_label, use_container_width=True, disabled=not ready, type="primary", key="confirm_turn_btn"):
         for s, v in [(sel_a, tA_vals), (sel_b, tB_vals)]:
             display_val = ""
             counts = Counter(v)
             
-            if s in ["Low Straight", "High Straight", "5 of a Kind"]:
-                if s == "Low Straight":
-                    is_correct = (v == [1, 2, 3, 4, 5])
-                    display_val = "👌" if is_correct else "25"
-                elif s == "High Straight":
-                    is_correct = (v == [2, 3, 4, 5, 6])
-                    display_val = "👌" if is_correct else "30"
-                elif s == "5 of a Kind":
-                    if len(counts) == 1:
-                        penalty = (6 - v[0]) * 5
-                        display_val = "👌" if penalty == 0 else str(penalty)
-                    else:
-                        display_val = "30"
-                st.session_state.trick_scores.at[s, current_p] = display_val
-                
+            if s == "Low Straight":
+                display_val = "👌" if (v == [1, 2, 3, 4, 5]) else "25"
+            elif s == "High Straight":
+                display_val = "👌" if (v == [2, 3, 4, 5, 6]) else "30"
+            elif s == "5 of a Kind":
+                if len(counts) == 1:
+                    penalty = (6 - v[0]) * 5
+                    display_val = "👌" if penalty == 0 else str(penalty)
+                else:
+                    display_val = "30"
             elif s == "Full House":
                 sorted_counts = sorted(counts.values(), reverse=True)
                 if sorted_counts == [3, 2] or sorted_counts == [5]:
                     display_val = calculate_score(v, s)
                 else:
                     display_val = "28"
-                st.session_state.master_scores.at[s, current_p] = display_val
-                
             else:
-                st.session_state.master_scores.at[s, current_p] = calculate_score(v, s)
+                display_val = calculate_score(v, s)
             
+            st.session_state.master_scores.at[s, current_p] = display_val
             st.session_state.used_categories[current_p].append(s)
         
-        # Reset turn state for next player
         st.session_state.dice = [0]*10
         st.session_state.trickA_indices, st.session_state.trickB_indices = [], []
         st.session_state.rolls_left = 3
         st.session_state.first_roll_made = False
         st.session_state.current_player_idx = (st.session_state.current_player_idx + 1) % len(st.session_state.players)
         st.rerun()
-        
-# --- 8. SCOREBOARD & TOTALS ---
+
+# --- 8. SCOREBOARD & RUNNING TOTALS ---
 if st.session_state.game_active or st.session_state.game_over:
     st.divider()
-    
-    # 1. CALCULATE RUNNING TOTALS
-    # We convert strings/emojis to 0, then sum the numeric penalty strings
     totals = {}
     for p in st.session_state.players:
-        # Sum Master Table (1s-6s, Full House)
-        m_vals = st.session_state.master_scores[p].apply(
-            lambda x: int(x) if str(x).isdigit() else 0
-        ).sum()
-        
-        # Sum Trick Table (Straights, 5 of a Kind)
-        t_vals = st.session_state.trick_scores[p].apply(
-            lambda x: int(x) if str(x).isdigit() else 0
-        ).sum()
-        
-        totals[p] = m_vals + t_vals
+        totals[p] = st.session_state.master_scores[p].apply(lambda x: int(x) if str(x).isdigit() else 0).sum()
 
-    # 2. DISPLAY TOTALS ABOVE TABLES
     st.subheader("📊 Current Penalty Totals (Lowest Wins!)")
-    
-    # Create a column for each player's total
     t_cols = st.columns(len(st.session_state.players))
     min_score = min(totals.values())
     
     for idx, p in enumerate(st.session_state.players):
-        is_winning = totals[p] == min_score
-        t_cols[idx].metric(
-            label=f"{p}'s Score", 
-            value=totals[p], 
-            delta="⭐ LEADING" if is_winning else None,
-            delta_color="normal"
-        )
+        t_cols[idx].metric(label=f"{p}'s Score", value=totals[p], delta="⭐ LEADING" if totals[p] == min_score else None)
 
     st.divider()
+    st.data_editor(st.session_state.master_scores, use_container_width=True, disabled=True, key="combined_table")
 
-    # 3. RENDER DATA TABLES
-    st.data_editor(st.session_state.master_scores, use_container_width=True, disabled=True, key="master_table")
-    st.data_editor(st.session_state.trick_scores, use_container_width=True, disabled=True, key="trick_table")
-
-    # 4. CHECK FOR GAME OVER
-    # Total categories per player = 7 (Master) + 3 (Tricks) = 10 total turns
-    all_finished = all(len(st.session_state.used_categories[p]) >= 10 for p in st.session_state.players)
-    
-    if all_finished:
-        st.session_state.game_over = True
-        st.session_state.game_active = False
-
-# --- 9. WINNER ANNOUNCEMENT & PLAY AGAIN ---
-# Total categories = 7 (Master) + 3 (Tricks) = 10
+# --- 9. WINNER ANNOUNCEMENT ---
 all_finished = all(len(st.session_state.used_categories[p]) >= 10 for p in st.session_state.players)
 
 if all_finished:
     st.session_state.game_over = True
     st.session_state.game_active = False
-    
-    # Trigger Balloons
     st.balloons()
     
-    # Calculate Final Totals to find the winner
-    final_totals = {}
-    for p in st.session_state.players:
-        m = st.session_state.master_scores[p].apply(lambda x: int(x) if str(x).isdigit() else 0).sum()
-        t = st.session_state.trick_scores[p].apply(lambda x: int(x) if str(x).isdigit() else 0).sum()
-        final_totals[p] = m + t
-    
-    # The winner is the player with the MINIMUM penalty points
-    winner_name = min(final_totals, key=final_totals.get)
-    winner_score = final_totals[winner_name]
-
-    # Large Styled Announcement
+    winner_name = min(totals, key=totals.get)
     st.markdown(f"""
         <div style="background-color:#ff4b4b; padding:30px; border-radius:15px; text-align:center; margin-top:30px;">
             <h1 style="color:white; margin:0;">🏆 THE WINNER IS {winner_name.upper()}! 🏆</h1>
-            <p style="color:white; font-size:24px; margin:10px 0;">Final Penalty Score: {winner_score}</p>
+            <p style="color:white; font-size:24px; margin:10px 0;">Final Penalty Score: {totals[winner_name]}</p>
         </div>
     """, unsafe_allow_html=True)
-
-    st.divider()
     
-    # Reset Button to start a fresh match
-    if st.button("🔄 Play Again (Same Players)", use_container_width=True, type="primary"):
-        # Reset specific game states but keep the player list
+    if st.button("🔄 Play Again", use_container_width=True, type="primary"):
         st.session_state.game_over = False
-        st.session_state.game_active = True
-        st.session_state.used_categories = {p: [] for p in st.session_state.players}
-        st.session_state.master_scores = pd.DataFrame("", index=["1s", "2s", "3s", "4s", "5s", "6s", "Full House"], columns=st.session_state.players)
-        st.session_state.trick_scores = pd.DataFrame("", index=["Low Straight", "High Straight", "5 of a Kind"], columns=st.session_state.players)
-        st.session_state.current_player_idx = 0
-        st.session_state.rolls_left = 3
-        st.session_state.first_roll_made = False
-        st.session_state.dice = [0]*10
+        st.session_state.game_active = False
         st.rerun()
