@@ -41,9 +41,10 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. THE "ALL WHITE" OVERRIDE CSS ---
+# --- 3. THE FINAL "ALL WHITE" SIDEBAR CSS ---
 st.markdown("""
     <style>
+    /* 1. Global Page Styles (White/Black theme) */
     .stApp, .stDataFrame, div[data-testid="stColumn"], div[data-testid="stHorizontalBlock"] {
         background-color: white !important;
         color: black !important;
@@ -54,16 +55,40 @@ st.markdown("""
     .stDataFrame thead tr th { background-color: #f8f9fa !important; color: black !important; }
     .stDataFrame tbody tr td { background-color: white !important; color: black !important; }
 
-    /* SIDEBAR FIX */
+    /* 2. SPECIFIC SIDEBAR COLOUR OVERRIDE */
+    
+    /* Target the whole sidebar */
     [data-testid="stSidebar"] {
         background-color: white !important;
         border-right: 1px solid #eeeeee !important;
     }
-    [data-testid="stSidebar"] .stMarkdown p, [data-testid="stSidebar"] label {
+    
+    /* Ensure all text/labels inside are black */
+    [data-testid="stSidebar"] p, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span {
         color: black !important;
     }
 
-    /* MEGA DICE STYLING */
+    /* Target the ARROW COLLAPSE BUTTON specifically */
+    div[data-testid="stSidebarCloseButton"] > button[kind="secondary"] {
+        background-color: white !important;
+        border: 1px solid #eeeeee !important; /* Subtle border so it doesn't float away */
+        border-radius: 8px !important;
+        box-shadow: none !important;
+    }
+    
+    /* Ensure the black arrows remain visible inside the white button */
+    div[data-testid="stSidebarCloseButton"] > button[kind="secondary"] * {
+        color: black !important;
+        stroke: black !important;
+    }
+
+    /* Gray hover effect for the arrow button */
+    div[data-testid="stSidebarCloseButton"] > button[kind="secondary"]:hover {
+        background-color: #f8f9fa !important;
+        border-color: #cccccc !important;
+    }
+
+    /* 3. MEGA DICE STYLING (Unchanged) */
     div[data-testid="stColumn"] > div > div > button {
         height: 150px !important;
         width: 120px !important;
@@ -73,14 +98,14 @@ st.markdown("""
     }
     div[data-testid="stColumn"] button p { font-size: 160px !important; color: black !important; }
 
-    /* HELD DICE FUNCTIONALITY */
+    /* 4. HELD DICE FUNCTIONALITY (Unchanged) */
     div[data-testid="stColumn"] button[kind="primary"] {
         background-color: #f8f9fa !important;
         border: 2px solid #cccccc !important;
     }
     div[data-testid="stColumn"] button[kind="primary"] p { color: #999999 !important; }
 
-    /* Small A/B Buttons */
+    /* 5. Small A/B Buttons (Unchanged) */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
         height: 35px !important;
         background-color: #f0f2f6 !important;
