@@ -10,17 +10,18 @@ def calculate_score(dice, category):
     dice.sort()
     counts = Counter(dice)
     target_map = {"1s": 1, "2s": 2, "3s": 3, "4s": 4, "5s": 5, "6s": 6}
+    
     if category in target_map:
         target = target_map[category]
         score = sum(1 for d in dice if d != target) * target
-        return "-" if score == 0 else str(score) # Return "-" if 0
+        return "👌" if score == 0 else str(score)
     
     if category == "Full House":
         sorted_items = sorted(counts.items(), key=lambda x: (x[1], x[0]), reverse=True)
         three_val = sorted_items[0][0]
         two_val = sorted_items[1][0] if len(sorted_items) > 1 else three_val
         score = ((6 - three_val) * 3) + ((5 - two_val) * 2)
-        return "-" if score == 0 else str(score) # Return "-" if 0
+        return "👌" if score == 0 else str(score)
     return "0"
 
 # --- 2. CONFIG & DATA ---
@@ -50,14 +51,8 @@ st.markdown("""
     h1, h2, h3, h4, p, span, label, div[data-testid="stMarkdownContainer"] p {
         color: black !important;
     }
-    .stDataFrame thead tr th {
-        background-color: #f8f9fa !important;
-        color: black !important;
-    }
-    .stDataFrame tbody tr td {
-        background-color: white !important;
-        color: black !important;
-    }
+    .stDataFrame thead tr th { background-color: #f8f9fa !important; color: black !important; }
+    .stDataFrame tbody tr td { background-color: white !important; color: black !important; }
 
     /* MEGA DICE STYLING */
     div[data-testid="stColumn"] > div > div > button {
@@ -67,19 +62,14 @@ st.markdown("""
         border: 2px solid #eeeeee !important;
         border-radius: 15px !important;
     }
-    div[data-testid="stColumn"] button p {
-        font-size: 160px !important;
-        color: black !important;
-    }
+    div[data-testid="stColumn"] button p { font-size: 160px !important; color: black !important; }
 
     /* HELD DICE FUNCTIONALITY */
     div[data-testid="stColumn"] button[kind="primary"] {
         background-color: #f8f9fa !important;
         border: 2px solid #cccccc !important;
     }
-    div[data-testid="stColumn"] button[kind="primary"] p {
-        color: #999999 !important;
-    }
+    div[data-testid="stColumn"] button[kind="primary"] p { color: #999999 !important; }
 
     /* Small A/B Buttons */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
@@ -88,37 +78,24 @@ st.markdown("""
         border: 1px solid #d1d5db !important;
     }
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button p {
-        font-size: 16px !important;
-        color: black !important;
-        font-weight: bold !important;
+        font-size: 16px !important; color: black !important; font-weight: bold !important;
     }
-    
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] {
         background-color: #ff4b4b !important;
     }
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
-        color: white !important;
-    }
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] p { color: white !important; }
 
-    button[kind="primary"] p {
-        color: white !important;
-    }
+    button[kind="primary"] p { color: white !important; }
 
     button[key="create_profile_btn"] {
         background-color: #ff4b4b !important;
         border: none !important;
     }
-    button[key="create_profile_btn"] p {
-        color: white !important;
-    }
+    button[key="create_profile_btn"] p { color: white !important; }
 
     .bank-header {
-        background-color: #f8f9fa !important;
-        color: black !important;
-        padding: 10px 20px !important;
-        border-radius: 10px !important;
-        text-align: center !important;
-        border: 1px solid #dee2e6 !important;
+        background-color: #f8f9fa !important; color: black !important; padding: 10px 20px !important;
+        border-radius: 10px !important; text-align: center !important; border: 1px solid #dee2e6 !important;
     }
     .dice-tray { display: flex !important; justify-content: center !important; width: 100% !important; }
     </style>
@@ -134,7 +111,7 @@ if 'rolls_left' not in st.session_state: st.session_state.rolls_left = 3
 if 'current_player_idx' not in st.session_state: st.session_state.current_player_idx = 0
 if 'used_categories' not in st.session_state: st.session_state.used_categories = {}
 
-# --- 5. SETUP & PROFILE MANAGEMENT ---
+# --- 5. SETUP ---
 if not st.session_state.game_active and not st.session_state.game_over:
     st.title("🎲 Double Cameroon")
     col1, col2 = st.columns(2)
@@ -148,15 +125,14 @@ if not st.session_state.game_active and not st.session_state.game_over:
                 st.rerun()
     with col2:
         st.subheader("Start Game")
-        selected = st.multiselect("Select Players for this Match:", list(stats["Players"].keys()))
+        selected = st.multiselect("Select Players:", list(stats["Players"].keys()))
         if st.button("🚀 Start Game", type="primary") and selected:
             st.session_state.players = selected
             st.session_state.current_player_idx = 0
             st.session_state.used_categories = {p: [] for p in selected}
             rows = ["1s", "2s", "3s", "4s", "5s", "6s", "Full House"]
-            # Initialize with empty strings for better visual tracking
             st.session_state.master_scores = pd.DataFrame("", index=rows, columns=selected)
-            st.session_state.trick_scores = pd.DataFrame(False, index=["Low Straight", "High Straight", "5 of a Kind"], columns=selected)
+            st.session_state.trick_scores = pd.DataFrame("", index=["Low Straight", "High Straight", "5 of a Kind"], columns=selected)
             st.session_state.game_active = True
             st.rerun()
 
@@ -203,40 +179,44 @@ if st.session_state.game_active and not st.session_state.game_over:
 
     # --- 7. SCORING ---
     st.divider()
-    tA_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickA_indices], reverse=True)
-    tB_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickB_indices], reverse=True)
+    tA_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickA_indices])
+    tB_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickB_indices])
     
-    def get_opts(dice, player):
-        opts = ["1s", "2s", "3s", "4s", "5s", "6s"]
-        check_dice = sorted(dice)
-        counts = Counter(dice)
-        sorted_counts = sorted(counts.values(), reverse=True)
-        if (len(sorted_counts) == 2 and sorted_counts[0] >= 3 and sorted_counts[1] >= 2) or (len(sorted_counts) == 1 and sorted_counts[0] == 5):
-            opts.append("Full House")
-        if check_dice == [1, 2, 3, 4, 5]: opts.append("Low Straight")
-        if check_dice == [2, 3, 4, 5, 6]: opts.append("High Straight")
-        if len(sorted_counts) == 1 and sorted_counts[0] == 5: opts.append("5 of a Kind")
-        return [o for o in opts if o not in st.session_state.used_categories[player]]
+    def get_opts(player):
+        categories = ["1s", "2s", "3s", "4s", "5s", "6s", "Full House", "Low Straight", "High Straight", "5 of a Kind"]
+        return [c for c in categories if c not in st.session_state.used_categories[player]]
 
+    unused_opts = get_opts(current_p)
     ca, cb = st.columns(2)
     with ca:
-        st.markdown(f"<div class='bank-header'>Trick A ({len(tA_vals)}/5) &nbsp;&nbsp; {tA_vals if tA_vals else ''}</div>", unsafe_allow_html=True)
-        sel_a = st.selectbox("Assign A:", get_opts(tA_vals, current_p), key="sA") if len(tA_vals) == 5 else None
+        st.markdown(f"<div class='bank-header'>Trick A ({len(tA_vals)}/5)</div>", unsafe_allow_html=True)
+        sel_a = st.selectbox("Assign A:", ["Select Category"] + unused_opts, key="sA") if len(tA_vals) == 5 else None
     with cb:
-        st.markdown(f"<div class='bank-header'>Trick B ({len(tB_vals)}/5) &nbsp;&nbsp; {tB_vals if tB_vals else ''}</div>", unsafe_allow_html=True)
-        sel_b = st.selectbox("Assign B:", get_opts(tB_vals, current_p), key="sB") if len(tB_vals) == 5 else None
+        st.markdown(f"<div class='bank-header'>Trick B ({len(tB_vals)}/5)</div>", unsafe_allow_html=True)
+        filtered_b = [opt for opt in unused_opts if opt != sel_a]
+        sel_b = st.selectbox("Assign B:", ["Select Category"] + filtered_b, key="sB") if len(tB_vals) == 5 else None
 
-    ready_to_confirm = len(tA_vals) == 5 and len(tB_vals) == 5
-    confirm_label = "✅ Confirm Turn" if ready_to_confirm else "Assign all dice to confirm"
+    # THE FIX: Only include the ✅ emoji when 10 dice are assigned
+    if len(tA_vals) == 5 and len(tB_vals) == 5:
+        confirm_label = "✅ Confirm Turn"
+    else:
+        confirm_label = "Assign all dice to confirm"
 
-    if st.button(confirm_label, use_container_width=True, disabled=not (sel_a and sel_b), type="primary"):
+    ready = sel_a and sel_b and sel_a != "Select Category" and sel_b != "Select Category" and len(tA_vals) == 5 and len(tB_vals) == 5
+
+    if st.button(confirm_label, use_container_width=True, disabled=not ready, type="primary"):
         for s, v in [(sel_a, tA_vals), (sel_b, tB_vals)]:
             if s in ["Low Straight", "High Straight", "5 of a Kind"]:
-                st.session_state.trick_scores.at[s, current_p] = True
+                is_correct = False
+                if s == "Low Straight" and v == [1, 2, 3, 4, 5]: is_correct = True
+                if s == "High Straight" and v == [2, 3, 4, 5, 6]: is_correct = True
+                if s == "5 of a Kind" and len(Counter(v)) == 1: is_correct = True
+                penalty_map = {"Low Straight": "25", "High Straight": "30", "5 of a Kind": "50"}
+                st.session_state.trick_scores.at[s, current_p] = "👌" if is_correct else penalty_map[s]
             else:
-                # Store as string so we can display "-"
                 st.session_state.master_scores.at[s, current_p] = calculate_score(v, s)
             st.session_state.used_categories[current_p].append(s)
+        
         st.session_state.dice, st.session_state.trickA_indices, st.session_state.trickB_indices = [0]*10, [], []
         st.session_state.rolls_left, st.session_state.first_roll_made = 3, False
         st.session_state.current_player_idx = (st.session_state.current_player_idx + 1) % len(st.session_state.players)
