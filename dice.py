@@ -73,26 +73,31 @@ st.markdown("""
         color: black !important;
     }
 
-    /* 3. MULTISELECT / DROPDOWN (THE "DARK" FIX) */
+    /* 3. MULTISELECT / DROPDOWN (PORTAL FIX) */
     
-    /* Target the dropdown container globally */
-    div[data-baseweb="popover"], div[data-baseweb="menu"], ul[role="listbox"] {
-        background-color: white !important;
-    }
-
-    /* Target the list items inside the dropdown */
-    div[data-baseweb="popover"] li, div[data-baseweb="menu"] li, role["option"] {
+    /* Targets the floating box that appears when you click the dropdown */
+    div[data-baseweb="popover"], 
+    div[role="listbox"], 
+    ul[role="listbox"] {
         background-color: white !important;
         color: black !important;
     }
 
-    /* Force the text inside the options to be black */
-    div[data-baseweb="popover"] span, div[data-baseweb="menu"] span {
+    /* Targets the individual items (Tori, Tom, etc.) */
+    div[data-baseweb="popover"] li, 
+    div[role="listbox"] li, 
+    ul[role="listbox"] li {
+        background-color: white !important;
         color: black !important;
     }
 
-    /* Hover effect for the list items */
-    div[data-baseweb="popover"] li:hover, div[data-baseweb="menu"] li:hover {
+    /* Change the text color of the options specifically */
+    div[data-baseweb="popover"] * {
+        color: black !important;
+    }
+
+    /* Hover effect for items in the dropdown */
+    div[data-baseweb="popover"] li:hover {
         background-color: #f0f2f6 !important;
     }
 
