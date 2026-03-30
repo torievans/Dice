@@ -54,6 +54,15 @@ st.markdown("""
     .stDataFrame thead tr th { background-color: #f8f9fa !important; color: black !important; }
     .stDataFrame tbody tr td { background-color: white !important; color: black !important; }
 
+    /* SIDEBAR FIX */
+    [data-testid="stSidebar"] {
+        background-color: white !important;
+        border-right: 1px solid #eeeeee !important;
+    }
+    [data-testid="stSidebar"] .stMarkdown p, [data-testid="stSidebar"] label {
+        color: black !important;
+    }
+
     /* MEGA DICE STYLING */
     div[data-testid="stColumn"] > div > div > button {
         height: 150px !important;
