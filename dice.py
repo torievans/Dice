@@ -288,9 +288,11 @@ if st.session_state.game_active or st.session_state.game_over:
 
     st.divider()
     
-    # 5. THE SCOREBOARD
+   # 5. THE SCOREBOARD
     # Becomes editable in 'Score Only' mode
     is_manual = st.session_state.game_mode == "Score Only"
+    
+    # We use the return value of data_editor to update session_state immediately
     edited_df = st.data_editor(
         st.session_state.master_scores, 
         use_container_width=True, 
@@ -298,10 +300,17 @@ if st.session_state.game_active or st.session_state.game_over:
         key="combined_table"
     )
     
+    # CRITICAL: This update must happen every rerun to "stick" the numbers
     if is_manual:
         st.session_state.master_scores = edited_df
-        # Sync used_categories so the winner banner still triggers
+        
+        # This part ensures the game still "knows" when it's over
         for p in st.session_state.players:
+            # We filter for anything that isn't an empty string
             st.session_state.used_categories[p] = [
-                cat for cat in edited_df.index if str(edited_df.at[cat, p]).strip() != ""
+                cat for cat in edited_df.index 
+                if str(edited_df.at[cat, p]).strip() != ""
             ]
+        
+        # Check if the data change requires a rerun to update the "Leading" metrics at the top
+        # (Streamlit handles most of this, but this ensures the winner banner pops up instantly)
