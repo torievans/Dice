@@ -41,31 +41,39 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. THE "FORCE MEGA" CSS ---
+# --- 3. THE NUCLEAR "FORCE MEGA" CSS ---
 st.markdown("""
     <style>
-    .stApp { background-color: white !important; }
-    
-    /* TARGET THE DICE BUTTONS BY KEY PREFIX */
+    /* 1. Force the container to allow tall buttons */
+    [data-testid="column"] {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+    }
+
+    /* 2. Target the Dice Buttons (keys starting with v_) */
     button[key^="v_"] {
         height: 150px !important;
-        width: 100% !important;
+        width: 120px !important;
+        min-height: 150px !important;
         min-width: 110px !important;
         background-color: white !important;
         border: 2px solid #eeeeee !important;
         border-radius: 15px !important;
-        margin-bottom: 10px !important;
+        z-index: 999 !important;
     }
 
-    /* TARGET THE TEXT INSIDE DICE BUTTONS */
-    button[key^="v_"] div[data-testid="stMarkdownContainer"] p {
+    /* 3. Target the Dice Text/Emoji */
+    button[key^="v_"] p {
         font-size: 110px !important;
-        line-height: 1.2 !important;
+        line-height: 150px !important;
+        height: 150px !important;
+        display: block !important;
         color: black !important;
-        font-family: serif !important;
+        margin: 0 !important;
     }
 
-    /* HELD DICE COLORS */
+    /* 4. Held Dice Styling */
     button[key^="v_"][kind="primary"] {
         background-color: #f8f9fa !important;
         border: 2px solid #ff4b4b !important;
@@ -74,22 +82,16 @@ st.markdown("""
         color: #ff4b4b !important;
     }
 
-    /* SMALL A/B BUTTONS */
+    /* 5. Ensure A/B buttons stay small and don't inherit the 150px */
     button[key^="t"] {
         height: 35px !important;
-        background-color: #f0f2f6 !important;
-        border: 1px solid #d1d5db !important;
+        min-height: 35px !important;
+        width: 100% !important;
+        margin-top: 5px !important;
     }
     button[key^="t"] p {
-        font-size: 16px !important;
-        font-weight: bold !important;
-        color: black !important;
-    }
-
-    /* OTHER UI ELEMENTS */
-    .bank-header {
-        background-color: #f8f9fa !important; color: black !important; padding: 10px 20px !important;
-        border-radius: 10px !important; text-align: center !important; border: 1px solid #dee2e6 !important;
+        font-size: 14px !important;
+        line-height: 1 !important;
     }
     </style>
     """, unsafe_allow_html=True)
