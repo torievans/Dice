@@ -41,50 +41,48 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. CSS ---
+# --- 3. UPDATED MEGA DICE CSS ---
 st.markdown("""
     <style>
     .stApp, .stDataFrame, div[data-testid="stColumn"], div[data-testid="stHorizontalBlock"] {
         background-color: white !important; color: black !important;
     }
-    h1, h2, h3, h4, p, span, label, div[data-testid="stMarkdownContainer"] p {
-        color: black !important;
+    
+    /* TARGETING THE MEGA DICE BUTTONS SPECIFICALLY */
+    button[key^="v_"] {
+        height: 150px !important; 
+        width: 120px !important;
+        background-color: white !important; 
+        border: 2px solid #eeeeee !important; 
+        border-radius: 15px !important;
+        margin-bottom: 10px !important;
     }
-    .stDataFrame thead tr th { background-color: #f8f9fa !important; color: black !important; }
-    .stDataFrame tbody tr td { background-color: white !important; color: black !important; }
+    button[key^="v_"] p { 
+        font-size: 160px !important; 
+        line-height: 150px !important;
+        color: black !important; 
+    }
 
-    /* MEGA DICE */
-    div[data-testid="stColumn"] > div > div > button[key^="v_"] {
-        height: 150px !important; width: 120px !important;
-        background-color: white !important; border: 2px solid #eeeeee !important; border-radius: 15px !important;
+    /* HELD DICE STYLING */
+    button[key^="v_"][kind="primary"] {
+        background-color: #f8f9fa !important; 
+        border: 2px solid #cccccc !important;
     }
-    div[data-testid="stColumn"] button[key^="v_"] p { font-size: 160px !important; color: black !important; }
+    button[key^="v_"][kind="primary"] p { color: #999999 !important; }
 
-    /* HELD DICE */
-    div[data-testid="stColumn"] button[key^="v_"][kind="primary"] {
-        background-color: #f8f9fa !important; border: 2px solid #cccccc !important;
+    /* KEEPING A/B BUTTONS SMALL */
+    button[key^="t"] {
+        height: 35px !important; 
+        background-color: #f0f2f6 !important; 
+        border: 1px solid #d1d5db !important;
     }
-    div[data-testid="stColumn"] button[key^="v_"][kind="primary"] p { color: #999999 !important; }
-
-    /* Small A/B Buttons */
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[key^="t"] {
-        height: 35px !important; background-color: #f0f2f6 !important; border: 1px solid #d1d5db !important;
-    }
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[key^="t"] p {
-        font-size: 16px !important; color: black !important; font-weight: bold !important;
-    }
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[key^="t"][kind="primary"] {
-        background-color: #ff4b4b !important;
-    }
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[key^="t"][kind="primary"] p { color: white !important; }
-
-    button[kind="primary"] p { color: white !important; }
+    button[key^="t"] p { font-size: 16px !important; font-weight: bold !important; }
 
     .bank-header {
         background-color: #f8f9fa !important; color: black !important; padding: 10px 20px !important;
         border-radius: 10px !important; text-align: center !important; border: 1px solid #dee2e6 !important;
     }
-    .dice-tray { display: flex !important; justify-content: center !important; width: 100% !important; }
+    .dice-tray { display: flex !important; justify-content: center !important; gap: 10px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -125,7 +123,7 @@ if not st.session_state.game_active and not st.session_state.game_over:
             st.session_state.game_active = True
             st.rerun()
 
-# --- 6 & 7. GAMEPLAY & SCORING (Play Dice Mode Only) ---
+# --- 6 & 7. GAMEPLAY & SCORING ---
 if st.session_state.game_active and not st.session_state.game_over:
     if st.session_state.game_mode == "Play Dice":
         current_p = st.session_state.players[st.session_state.current_player_idx]
@@ -150,7 +148,7 @@ if st.session_state.game_active and not st.session_state.game_over:
             with d_cols[i]:
                 inA, inB = i in st.session_state.trickA_indices, i in st.session_state.trickB_indices
                 label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
-                st.button(label, key=f"v_{i}", disabled=True, type="primary" if (inA or inB) else "secondary")
+                st.button(label, key=f"v_{i}", type="primary" if (inA or inB) else "secondary")
                 
                 c1, c2 = st.columns(2)
                 if c1.button("A", key=f"tA_{i}", disabled=not st.session_state.first_roll_made, type="primary" if inA else "secondary"):
@@ -226,28 +224,28 @@ if st.session_state.game_active and not st.session_state.game_over:
 if st.session_state.game_active or st.session_state.game_over:
     st.divider()
     
-    # Calculate Totals
+    # 1. Calculation
     totals = {}
     for p in st.session_state.players:
         totals[p] = st.session_state.master_scores[p].apply(lambda x: int(x) if str(x).isdigit() else 0).sum()
 
-    # Check for Game Over
+    # 2. End Game Check
     all_finished = all(len(st.session_state.used_categories[p]) >= 10 for p in st.session_state.players)
     if all_finished and not st.session_state.game_over:
         st.balloons(); st.session_state.game_over, st.session_state.game_active = True, False
 
-    # Winner Banner (At the top of this section)
+    # 3. Winner Announcement (Slotted above the Metrics/Table)
     if st.session_state.game_over:
         winner = min(totals, key=totals.get)
         st.markdown(f"""<div style="background-color:#ff4b4b; padding:30px; border-radius:15px; text-align:center; margin-bottom:25px;">
             <h1 style="color:white; margin:0;">🏆 THE WINNER IS {winner.upper()}! 🏆</h1>
             <p style="color:white; font-size:24px; margin:10px 0;">Final Penalty Score: {totals[winner]}</p>
         </div>""", unsafe_allow_html=True)
-        if st.button("🔄 Play Again", use_container_width=True, type="primary"):
+        if st.button("🔄 Play Again", use_container_width=True, type="primary", key="restart_game_btn"):
             st.session_state.game_over, st.session_state.game_active = False, False
             st.rerun()
 
-    # Metrics
+    # 4. Metrics
     st.subheader("📊 Penalty Totals")
     t_cols = st.columns(len(st.session_state.players))
     min_score = min(totals.values())
@@ -256,7 +254,7 @@ if st.session_state.game_active or st.session_state.game_over:
 
     st.divider()
     
-    # Table Logic
+    # 5. Table (Editable if Score Only)
     is_manual = st.session_state.get("game_mode") == "Score Only"
     edited_df = st.data_editor(st.session_state.master_scores, use_container_width=True, disabled=not is_manual, key="main_table")
     
