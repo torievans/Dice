@@ -177,7 +177,7 @@ if st.session_state.game_active and not st.session_state.game_over:
                 st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- 7. SCORING ---
+   # --- 7. SCORING ---
     st.divider()
     # Sort dice values for easier logic checks
     tA_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickA_indices])
@@ -207,30 +207,40 @@ if st.session_state.game_active and not st.session_state.game_over:
 
     if st.button(confirm_label, use_container_width=True, disabled=not ready, type="primary"):
         for s, v in [(sel_a, tA_vals), (sel_b, tB_vals)]:
+            display_val = ""
+            counts = Counter(v)
+            
             if s in ["Low Straight", "High Straight", "5 of a Kind"]:
-                display_val = ""
-                
                 if s == "Low Straight":
                     is_correct = (v == [1, 2, 3, 4, 5])
                     display_val = "👌" if is_correct else "25"
-                    
                 elif s == "High Straight":
                     is_correct = (v == [2, 3, 4, 5, 6])
                     display_val = "👌" if is_correct else "30"
-                    
                 elif s == "5 of a Kind":
-                    counts = Counter(v)
-                    if len(counts) == 1:  # Successfully got 5 identical dice
-                        die_val = v[0]
-                        penalty = (6 - die_val) * 5
+                    if len(counts) == 1:
+                        penalty = (6 - v[0]) * 5
                         display_val = "👌" if penalty == 0 else str(penalty)
                     else:
-                        # Failed attempt: not 5 of a kind
                         display_val = "30"
-                
                 st.session_state.trick_scores.at[s, current_p] = display_val
+                
+            elif s == "Full House":
+                # Check if it is actually a Full House (3 of one, 2 of another)
+                # Note: 5 of a kind also technically counts as a Full House in many rulesets, 
+                # but here we follow the 3+2 structure.
+                sorted_counts = sorted(counts.values(), reverse=True)
+                if sorted_counts == [3, 2] or sorted_counts == [5]:
+                    # Successfully achieved: Use the Penalty Engine logic
+                    # Engine returns "👌" or the calculated string penalty
+                    display_val = calculate_score(v, s)
+                else:
+                    # Failed attempt: not a Full House structure
+                    display_val = "28"
+                st.session_state.master_scores.at[s, current_p] = display_val
+                
             else:
-                # Standard scoring for 1s-6s and Full House from Section 1
+                # Standard scoring for 1s-6s
                 st.session_state.master_scores.at[s, current_p] = calculate_score(v, s)
             
             # Mark category as used
@@ -238,13 +248,11 @@ if st.session_state.game_active and not st.session_state.game_over:
         
         # Reset turn state for next player
         st.session_state.dice = [0]*10
-        st.session_state.trickA_indices = []
-        st.session_state.trickB_indices = []
+        st.session_state.trickA_indices, st.session_state.trickB_indices = [], []
         st.session_state.rolls_left = 3
         st.session_state.first_roll_made = False
         st.session_state.current_player_idx = (st.session_state.current_player_idx + 1) % len(st.session_state.players)
         st.rerun()
-
 # --- 8. SCOREBOARD ---
 if st.session_state.game_active:
     st.divider()
