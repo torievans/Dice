@@ -183,6 +183,29 @@ if st.session_state.game_active and not st.session_state.game_over:
                 st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
+    # --- SIMULATION TOOL (Add this temporarily to test the Winner Screen) ---
+if st.sidebar.button("🚀 Fast-Forward to End"):
+    # Fill Master Scores with random penalties or 👌
+    for p in st.session_state.players:
+        for cat in st.session_state.master_scores.index:
+            if st.session_state.master_scores.at[cat, p] == "":
+                val = random.choice(["👌", "5", "12", "18", "28"])
+                st.session_state.master_scores.at[cat, p] = val
+        
+        # Fill Trick Scores
+        for cat in st.session_state.trick_scores.index:
+            if st.session_state.trick_scores.at[cat, p] == "":
+                val = random.choice(["👌", "25", "30", "50"])
+                st.session_state.trick_scores.at[cat, p] = val
+        
+        # Mark all categories as used for all players
+        st.session_state.used_categories[p] = [
+            "1s", "2s", "3s", "4s", "5s", "6s", 
+            "Full House", "Low Straight", "High Straight", "5 of a Kind"
+        ]
+    
+    st.rerun()
+
     # --- 7. SCORING ---
     st.divider()
     # Sort dice values for easier logic checks
@@ -301,3 +324,49 @@ if st.session_state.game_active or st.session_state.game_over:
     if all_finished:
         st.session_state.game_over = True
         st.session_state.game_active = False
+
+# --- 9. WINNER ANNOUNCEMENT & PLAY AGAIN ---
+# Total categories = 7 (Master) + 3 (Tricks) = 10
+all_finished = all(len(st.session_state.used_categories[p]) >= 10 for p in st.session_state.players)
+
+if all_finished:
+    st.session_state.game_over = True
+    st.session_state.game_active = False
+    
+    # Trigger Balloons
+    st.balloons()
+    
+    # Calculate Final Totals to find the winner
+    final_totals = {}
+    for p in st.session_state.players:
+        m = st.session_state.master_scores[p].apply(lambda x: int(x) if str(x).isdigit() else 0).sum()
+        t = st.session_state.trick_scores[p].apply(lambda x: int(x) if str(x).isdigit() else 0).sum()
+        final_totals[p] = m + t
+    
+    # The winner is the player with the MINIMUM penalty points
+    winner_name = min(final_totals, key=final_totals.get)
+    winner_score = final_totals[winner_name]
+
+    # Large Styled Announcement
+    st.markdown(f"""
+        <div style="background-color:#ff4b4b; padding:30px; border-radius:15px; text-align:center; margin-top:30px;">
+            <h1 style="color:white; margin:0;">🏆 THE WINNER IS {winner_name.upper()}! 🏆</h1>
+            <p style="color:white; font-size:24px; margin:10px 0;">Final Penalty Score: {winner_score}</p>
+        </div>
+    """, unsafe_allow_html=True)
+
+    st.divider()
+    
+    # Reset Button to start a fresh match
+    if st.button("🔄 Play Again (Same Players)", use_container_width=True, type="primary"):
+        # Reset specific game states but keep the player list
+        st.session_state.game_over = False
+        st.session_state.game_active = True
+        st.session_state.used_categories = {p: [] for p in st.session_state.players}
+        st.session_state.master_scores = pd.DataFrame("", index=["1s", "2s", "3s", "4s", "5s", "6s", "Full House"], columns=st.session_state.players)
+        st.session_state.trick_scores = pd.DataFrame("", index=["Low Straight", "High Straight", "5 of a Kind"], columns=st.session_state.players)
+        st.session_state.current_player_idx = 0
+        st.session_state.rolls_left = 3
+        st.session_state.first_roll_made = False
+        st.session_state.dice = [0]*10
+        st.rerun()
