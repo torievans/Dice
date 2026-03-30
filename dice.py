@@ -181,9 +181,12 @@ if st.session_state.game_active and not st.session_state.game_over:
 
     # --- 7. SCORING ---
     st.divider()
+    
+    # Extract and sort dice values for the two banks
     tA_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickA_indices])
     tB_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickB_indices])
     
+    # Helper to find available categories for the current player
     def get_opts(player):
         categories = ["1s", "2s", "3s", "4s", "5s", "6s", "Full House", "Low Straight", "High Straight", "5 of a Kind"]
         return [c for c in categories if c not in st.session_state.used_categories[player]]
@@ -193,43 +196,67 @@ if st.session_state.game_active and not st.session_state.game_over:
     
     with ca:
         st.markdown(f"<div class='bank-header'>Trick A ({len(tA_vals)}/5) &nbsp;&nbsp; {tA_vals if tA_vals else ''}</div>", unsafe_allow_html=True)
+        # Show dropdown only if Bank A is full
         sel_a = st.selectbox("Assign A:", ["Select Category"] + unused_opts, key="sA") if len(tA_vals) == 5 else None
     with cb:
         st.markdown(f"<div class='bank-header'>Trick B ({len(tB_vals)}/5) &nbsp;&nbsp; {tB_vals if tB_vals else ''}</div>", unsafe_allow_html=True)
+        # Show dropdown only if Bank B is full; filter out what was picked in A
         filtered_b = [opt for opt in unused_opts if opt != sel_a]
         sel_b = st.selectbox("Assign B:", ["Select Category"] + filtered_b, key="sB") if len(tB_vals) == 5 else None
 
+    # --- BUTTON LABEL & VALIDATION LOGIC ---
     full_tray = (len(tA_vals) == 5 and len(tB_vals) == 5)
-    confirm_label = "✅ Confirm Turn" if full_tray else "Assign all dice to confirm"
-    ready = full_tray and sel_a and sel_b and sel_a != "Select Category" and sel_b != "Select Category"
+    cats_selected = (sel_a and sel_b and sel_a != "Select Category" and sel_b != "Select Category")
+    
+    if full_tray and cats_selected:
+        confirm_label = "✅ Confirm Turn"
+        ready = True
+    elif full_tray:
+        confirm_label = "Please select categories for both tricks"
+        ready = False
+    else:
+        confirm_label = "Assign all 10 dice to banks to continue"
+        ready = False
 
+    # THE CONFIRM BUTTON
     if st.button(confirm_label, use_container_width=True, disabled=not ready, type="primary", key="confirm_turn_btn"):
         for s, v in [(sel_a, tA_vals), (sel_b, tB_vals)]:
             display_val = ""
             counts = Counter(v)
             
+            # --- SPECIAL CATEGORY LOGIC ---
             if s == "Low Straight":
                 display_val = "👌" if (v == [1, 2, 3, 4, 5]) else "25"
+                
             elif s == "High Straight":
                 display_val = "👌" if (v == [2, 3, 4, 5, 6]) else "30"
+                
             elif s == "5 of a Kind":
                 if len(counts) == 1:
+                    # Penalty is distance from 6s (e.g., five 1s = 25 penalty)
                     penalty = (6 - v[0]) * 5
                     display_val = "👌" if penalty == 0 else str(penalty)
                 else:
                     display_val = "30"
+                    
             elif s == "Full House":
                 sorted_counts = sorted(counts.values(), reverse=True)
+                # Success: 3 of a kind and 2 of a kind (or 5 of a kind)
                 if sorted_counts == [3, 2] or sorted_counts == [5]:
                     display_val = calculate_score(v, s)
                 else:
+                    # Failure: Not a full house structure
                     display_val = "28"
+            
+            # --- STANDARD CATEGORY LOGIC (1s-6s) ---
             else:
                 display_val = calculate_score(v, s)
             
+            # Save to Master Scoreboard
             st.session_state.master_scores.at[s, current_p] = display_val
             st.session_state.used_categories[current_p].append(s)
         
+        # --- RESET FOR NEXT TURN ---
         st.session_state.dice = [0]*10
         st.session_state.trickA_indices, st.session_state.trickB_indices = [], []
         st.session_state.rolls_left = 3
