@@ -41,54 +41,47 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. THE FINAL "ALL WHITE" SIDEBAR CSS ---
+# --- 3. THE "TOTAL WHITEOUT" OVERRIDE CSS ---
 st.markdown("""
     <style>
-    /* 1. Global Page Styles (White/Black theme) */
-    .stApp, .stDataFrame, div[data-testid="stColumn"], div[data-testid="stHorizontalBlock"] {
+    /* 1. FORCE THE TOP HEADER TO WHITE */
+    header[data-testid="stHeader"] {
         background-color: white !important;
         color: black !important;
     }
-    h1, h2, h3, h4, p, span, label, div[data-testid="stMarkdownContainer"] p {
-        color: black !important;
-    }
-    .stDataFrame thead tr th { background-color: #f8f9fa !important; color: black !important; }
-    .stDataFrame tbody tr td { background-color: white !important; color: black !important; }
 
-    /* 2. SPECIFIC SIDEBAR COLOUR OVERRIDE */
-    
-    /* Target the whole sidebar */
+    /* 2. FORCE THE SIDEBAR & COLLAPSE BUTTON TO WHITE */
     [data-testid="stSidebar"] {
         background-color: white !important;
         border-right: 1px solid #eeeeee !important;
     }
-    
-    /* Ensure all text/labels inside are black */
-    [data-testid="stSidebar"] p, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span {
-        color: black !important;
-    }
 
-    /* Target the ARROW COLLAPSE BUTTON specifically */
-    div[data-testid="stSidebarCloseButton"] > button[kind="secondary"] {
+    /* Target the button container and the button itself */
+    div[data-testid="stSidebarCollapseButton"] button, 
+    div[data-testid="stSidebarCloseButton"] button {
         background-color: white !important;
-        border: 1px solid #eeeeee !important; /* Subtle border so it doesn't float away */
-        border-radius: 8px !important;
-        box-shadow: none !important;
-    }
-    
-    /* Ensure the black arrows remain visible inside the white button */
-    div[data-testid="stSidebarCloseButton"] > button[kind="secondary"] * {
         color: black !important;
-        stroke: black !important;
+        border: 1px solid #eeeeee !important;
     }
 
-    /* Gray hover effect for the arrow button */
-    div[data-testid="stSidebarCloseButton"] > button[kind="secondary"]:hover {
-        background-color: #f8f9fa !important;
-        border-color: #cccccc !important;
+    /* Target the SVG icon (the arrows) inside the buttons */
+    div[data-testid="stSidebarCollapseButton"] svg, 
+    div[data-testid="stSidebarCloseButton"] svg {
+        fill: black !important;
+        color: black !important;
     }
 
-    /* 3. MEGA DICE STYLING (Unchanged) */
+    /* 3. GLOBAL PAGE STYLES */
+    .stApp {
+        background-color: white !important;
+    }
+
+    /* Ensure all text across the app is black */
+    h1, h2, h3, h4, p, span, label, li, div[data-testid="stMarkdownContainer"] p {
+        color: black !important;
+    }
+
+    /* 4. MEGA DICE STYLING (Restored) */
     div[data-testid="stColumn"] > div > div > button {
         height: 150px !important;
         width: 120px !important;
@@ -98,14 +91,14 @@ st.markdown("""
     }
     div[data-testid="stColumn"] button p { font-size: 160px !important; color: black !important; }
 
-    /* 4. HELD DICE FUNCTIONALITY (Unchanged) */
+    /* HELD DICE FUNCTIONALITY */
     div[data-testid="stColumn"] button[kind="primary"] {
         background-color: #f8f9fa !important;
         border: 2px solid #cccccc !important;
     }
     div[data-testid="stColumn"] button[kind="primary"] p { color: #999999 !important; }
 
-    /* 5. Small A/B Buttons (Unchanged) */
+    /* Small A/B Buttons */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
         height: 35px !important;
         background-color: #f0f2f6 !important;
@@ -119,19 +112,12 @@ st.markdown("""
     }
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] p { color: white !important; }
 
-    button[kind="primary"] p { color: white !important; }
-
-    button[key="create_profile_btn"] {
-        background-color: #ff4b4b !important;
-        border: none !important;
+    /* 5. DATA TABLE STYLING */
+    .stDataFrame, .stDataEditor {
+        background-color: white !important;
     }
-    button[key="create_profile_btn"] p { color: white !important; }
-
-    .bank-header {
-        background-color: #f8f9fa !important; color: black !important; padding: 10px 20px !important;
-        border-radius: 10px !important; text-align: center !important; border: 1px solid #dee2e6 !important;
-    }
-    .dice-tray { display: flex !important; justify-content: center !important; width: 100% !important; }
+    .stDataFrame thead tr th { background-color: #f8f9fa !important; color: black !important; }
+    .stDataFrame tbody tr td { background-color: white !important; color: black !important; }
     </style>
     """, unsafe_allow_html=True)
 
