@@ -203,40 +203,47 @@ if st.session_state.game_active and not st.session_state.game_over:
 
     # --- 7. SCORING ---
     st.divider()
-    tA_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickA_indices], reverse=True)
-    tB_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickB_indices], reverse=True)
+    # Sort dice for easier checking of straights
+    tA_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickA_indices])
+    tB_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickB_indices])
     
-    def get_opts(dice, player):
-        opts = ["1s", "2s", "3s", "4s", "5s", "6s"]
-        check_dice = sorted(dice)
-        counts = Counter(dice)
-        sorted_counts = sorted(counts.values(), reverse=True)
-        if (len(sorted_counts) == 2 and sorted_counts[0] >= 3 and sorted_counts[1] >= 2) or (len(sorted_counts) == 1 and sorted_counts[0] == 5):
-            opts.append("Full House")
-        if check_dice == [1, 2, 3, 4, 5]: opts.append("Low Straight")
-        if check_dice == [2, 3, 4, 5, 6]: opts.append("High Straight")
-        if len(sorted_counts) == 1 and sorted_counts[0] == 5: opts.append("5 of a Kind")
-        return [o for o in opts if o not in st.session_state.used_categories[player]]
+    def get_opts(player):
+        # Allow burning ANY unused category
+        categories = ["1s", "2s", "3s", "4s", "5s", "6s", "Full House", "Low Straight", "High Straight", "5 of a Kind"]
+        return [c for c in categories if c not in st.session_state.used_categories[player]]
 
+    unused_opts = get_opts(current_p)
     ca, cb = st.columns(2)
     with ca:
         st.markdown(f"<div class='bank-header'>Trick A ({len(tA_vals)}/5) &nbsp;&nbsp; {tA_vals if tA_vals else ''}</div>", unsafe_allow_html=True)
-        sel_a = st.selectbox("Assign A:", get_opts(tA_vals, current_p), key="sA") if len(tA_vals) == 5 else None
+        sel_a = st.selectbox("Assign A:", ["Select Category"] + unused_opts, key="sA") if len(tA_vals) == 5 else None
     with cb:
         st.markdown(f"<div class='bank-header'>Trick B ({len(tB_vals)}/5) &nbsp;&nbsp; {tB_vals if tB_vals else ''}</div>", unsafe_allow_html=True)
-        sel_b = st.selectbox("Assign B:", get_opts(tB_vals, current_p), key="sB") if len(tB_vals) == 5 else None
+        filtered_b = [opt for opt in unused_opts if opt != sel_a]
+        sel_b = st.selectbox("Assign B:", ["Select Category"] + filtered_b, key="sB") if len(tB_vals) == 5 else None
 
-    ready_to_confirm = len(tA_vals) == 5 and len(tB_vals) == 5
-    confirm_label = "✅ Confirm Turn" if ready_to_confirm else "Assign all dice to confirm"
+    ready_to_confirm = sel_a and sel_b and sel_a != "Select Category" and sel_b != "Select Category"
+    confirm_label = "✅ Confirm Turn" if (len(tA_vals) == 5 and len(tB_vals) == 5) else "Assign all dice to confirm"
 
-    if st.button(confirm_label, use_container_width=True, disabled=not (sel_a and sel_b), type="primary"):
+    if st.button(confirm_label, use_container_width=True, disabled=not ready_to_confirm, type="primary"):
         for s, v in [(sel_a, tA_vals), (sel_b, tB_vals)]:
             if s in ["Low Straight", "High Straight", "5 of a Kind"]:
-                st.session_state.trick_scores.at[s, current_p] = True
+                # Check if the trick was actually achieved (0 penalty)
+                is_correct = False
+                if s == "Low Straight" and v == [1, 2, 3, 4, 5]: is_correct = True
+                if s == "High Straight" and v == [2, 3, 4, 5, 6]: is_correct = True
+                if s == "5 of a Kind" and len(Counter(v)) == 1: is_correct = True
+                
+                # Penalty values for missing a special trick
+                penalty_map = {"Low Straight": "25", "High Straight": "30", "5 of a Kind": "50"}
+                st.session_state.trick_scores.at[s, current_p] = "-" if is_correct else penalty_map[s]
             else:
-                # Store as string so we can display "-"
+                # Standard 1s-6s and Full House scoring
                 st.session_state.master_scores.at[s, current_p] = calculate_score(v, s)
+            
             st.session_state.used_categories[current_p].append(s)
+            
+        # Reset Turn
         st.session_state.dice, st.session_state.trickA_indices, st.session_state.trickB_indices = [0]*10, [], []
         st.session_state.rolls_left, st.session_state.first_roll_made = 3, False
         st.session_state.current_player_idx = (st.session_state.current_player_idx + 1) % len(st.session_state.players)
