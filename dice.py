@@ -121,6 +121,36 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
+    /* 6. MULTISELECT / DROPDOWN FIX */
+    
+    /* The input box itself */
+    div[data-baseweb="select"] > div {
+        background-color: white !important;
+        color: black !important;
+    }
+
+    /* The list of names that pops down */
+    ul[data-testid="stVirtualDropdown"] {
+        background-color: white !important;
+    }
+
+    /* Individual items in the list */
+    ul[data-testid="stVirtualDropdown"] li {
+        background-color: white !important;
+        color: black !important;
+    }
+
+    /* Hover effect for names in the list */
+    ul[data-testid="stVirtualDropdown"] li:hover {
+        background-color: #f0f2f6 !important;
+    }
+    
+    /* The 'X' and chips for selected players */
+    span[data-baseweb="tag"] {
+        background-color: #f0f2f6 !important;
+        color: black !important;
+    }
+
 # --- 4. INITIALIZE STATE & SYNC ---
 for key in ['game_active', 'game_over', 'first_roll_made']:
     if key not in st.session_state: st.session_state[key] = False
