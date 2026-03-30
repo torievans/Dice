@@ -122,22 +122,6 @@ with st.sidebar:
         help="Play Dice: Interactive UI | Score Only: Manual entry for physical dice"
     )
 
-# --- NEW: SYNC FUNCTION ---
-def sync_manual_scores():
-    # If the user has typed into the table, Streamlit stores it in 'main_table'
-    if "main_table" in st.session_state:
-        # Get the 'edited_rows' dictionary from the data_editor state
-        edits = st.session_state["main_table"].get("edited_rows", {})
-        for row_idx, col_map in edits.items():
-            for col_name, val in col_map.items():
-                # Get the category name (index) from the row number
-                cat_name = st.session_state.master_scores.index[row_idx]
-                # Permanently save it to our master dataframe
-                st.session_state.master_scores.at[cat_name, col_name] = val
-
-# Call this at the TOP of the script every time it runs
-sync_manual_scores()
-
 # --- 5. SETUP ---
 if not st.session_state.game_active and not st.session_state.game_over:
     st.title("🎲 Double Cameroon")
