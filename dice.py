@@ -259,44 +259,39 @@ if st.session_state.game_active and not st.session_state.game_over:
         st.header("📝 Manual Score Entry")
         st.info("Physical Dice Mode: Enter scores directly into the table below. Use '👌' for 0 penalty.")
 
-# --- 8 & 9. TOTALS, WINNER, AND SCOREBOARD ---
+# --- 8 & 9. TOTALS, WINNER, AND SCOREBOARD (Optimized & Steady) ---
 
 @st.fragment
 def render_scoreboard():
-    # 1. Capture edits from the table via its key
+    # 1. Sync data from the table immediately
     if "main_table" in st.session_state:
         edits = st.session_state["main_table"].get("edited_rows", {})
-        for row_idx, col_map in edits.items():
-            for col_name, val in col_map.items():
-                cat_name = st.session_state.master_scores.index[row_idx]
-                st.session_state.master_scores.at[cat_name, col_name] = val
-        
-        # Update used_categories immediately so the check below works
-        for p in st.session_state.players:
-            st.session_state.used_categories[p] = [
-                cat for cat in st.session_state.master_scores.index 
-                if str(st.session_state.master_scores.at[cat, p]).strip() != ""
-            ]
+        if edits:
+            for row_idx, col_map in edits.items():
+                for col_name, val in col_map.items():
+                    cat_name = st.session_state.master_scores.index[row_idx]
+                    st.session_state.master_scores.at[cat_name, col_name] = val
+            
+            # Sync used_categories to check for Game Over
+            for p in st.session_state.players:
+                st.session_state.used_categories[p] = [
+                    cat for cat in st.session_state.master_scores.index 
+                    if str(st.session_state.master_scores.at[cat, p]).strip() != ""
+                ]
 
-    # 2. Calculate Totals (Moved inside fragment to ensure it sees the edits)
+    # 2. Calculate Totals inside the fragment
     totals = {}
     for p in st.session_state.players:
-        # Treats digits as numbers, 👌 or empty as 0
         totals[p] = st.session_state.master_scores[p].apply(
             lambda x: int(x) if str(x).isdigit() else 0
         ).sum()
 
-    # 3. Check for Game Over (10 categories filled for everyone)
+    # 3. Check for Game Over logic
     all_finished = all(len(st.session_state.used_categories[p]) >= 10 for p in st.session_state.players)
     
-    if all_finished and not st.session_state.game_over:
-        st.session_state.game_over = True
-        st.session_state.game_active = False
+    # 4. WINNER VIEW (If finished)
+    if all_finished:
         st.balloons()
-        st.rerun() # Force one full app rerun to show the winner banner
-
-    # 4. Winner Banner (Only shows if game_over is True)
-    if st.session_state.game_over:
         winner_name = min(totals, key=totals.get)
         st.markdown(f"""
             <div style="background-color:#ff4b4b; padding:30px; border-radius:15px; text-align:center; margin-bottom:25px;">
@@ -304,12 +299,14 @@ def render_scoreboard():
                 <p style="color:white; font-size:24px; margin:10px 0;">Final Penalty Score: {totals[winner_name]}</p>
             </div>
         """, unsafe_allow_html=True)
-        if st.button("🔄 Play Again", use_container_width=True, type="primary"):
+        
+        if st.button("🔄 Play Again", use_container_width=True, type="primary", key="frag_restart_btn"):
+            # Use st.rerun here ONLY to reset the entire app state for a new game
             st.session_state.game_over = False
             st.session_state.game_active = False
             st.rerun()
 
-    # 5. Metrics
+    # 5. METRICS (Always show these so players see their progress)
     st.subheader("📊 Penalty Totals (Lowest Wins!)")
     t_cols = st.columns(len(st.session_state.players))
     min_score = min(totals.values())
@@ -322,7 +319,7 @@ def render_scoreboard():
 
     st.divider()
     
-    # 6. The Table
+    # 6. THE TABLE
     is_manual = st.session_state.game_mode == "Score Only"
     st.data_editor(
         st.session_state.master_scores, 
