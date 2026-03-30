@@ -259,27 +259,43 @@ if st.session_state.game_active and not st.session_state.game_over:
         st.header("📝 Manual Score Entry")
         st.info("Physical Dice Mode: Enter scores directly into the table below. Use '👌' for 0 penalty.")
 
-# --- 8 & 9. TOTALS, WINNER, AND SCOREBOARD (Optimized with Fragment) ---
+# --- 8 & 9. TOTALS, WINNER, AND SCOREBOARD ---
 
 @st.fragment
 def render_scoreboard():
-    st.divider()
-    
-    # 1. Calculate Totals
+    # 1. Capture edits from the table via its key
+    if "main_table" in st.session_state:
+        edits = st.session_state["main_table"].get("edited_rows", {})
+        for row_idx, col_map in edits.items():
+            for col_name, val in col_map.items():
+                cat_name = st.session_state.master_scores.index[row_idx]
+                st.session_state.master_scores.at[cat_name, col_name] = val
+        
+        # Update used_categories immediately so the check below works
+        for p in st.session_state.players:
+            st.session_state.used_categories[p] = [
+                cat for cat in st.session_state.master_scores.index 
+                if str(st.session_state.master_scores.at[cat, p]).strip() != ""
+            ]
+
+    # 2. Calculate Totals (Moved inside fragment to ensure it sees the edits)
     totals = {}
     for p in st.session_state.players:
+        # Treats digits as numbers, 👌 or empty as 0
         totals[p] = st.session_state.master_scores[p].apply(
             lambda x: int(x) if str(x).isdigit() else 0
         ).sum()
 
-    # 2. End Game Check
+    # 3. Check for Game Over (10 categories filled for everyone)
     all_finished = all(len(st.session_state.used_categories[p]) >= 10 for p in st.session_state.players)
+    
     if all_finished and not st.session_state.game_over:
-        st.balloons()
         st.session_state.game_over = True
         st.session_state.game_active = False
+        st.balloons()
+        st.rerun() # Force one full app rerun to show the winner banner
 
-    # 3. Winner Announcement
+    # 4. Winner Banner (Only shows if game_over is True)
     if st.session_state.game_over:
         winner_name = min(totals, key=totals.get)
         st.markdown(f"""
@@ -288,12 +304,12 @@ def render_scoreboard():
                 <p style="color:white; font-size:24px; margin:10px 0;">Final Penalty Score: {totals[winner_name]}</p>
             </div>
         """, unsafe_allow_html=True)
-        if st.button("🔄 Play Again", use_container_width=True, type="primary", key="restart_btn"):
+        if st.button("🔄 Play Again", use_container_width=True, type="primary"):
             st.session_state.game_over = False
             st.session_state.game_active = False
             st.rerun()
 
-    # 4. Metrics
+    # 5. Metrics
     st.subheader("📊 Penalty Totals (Lowest Wins!)")
     t_cols = st.columns(len(st.session_state.players))
     min_score = min(totals.values())
@@ -306,25 +322,15 @@ def render_scoreboard():
 
     st.divider()
     
-    # 5. The Editable Table
+    # 6. The Table
     is_manual = st.session_state.game_mode == "Score Only"
-    
-    # The 'on_change' here ensures the sync happens inside the fragment
     st.data_editor(
         st.session_state.master_scores, 
         use_container_width=True, 
         disabled=not is_manual, 
         key="main_table"
     )
-    
-    # In manual mode, we update the used categories immediately inside the fragment
-    if is_manual:
-        for p in st.session_state.players:
-            st.session_state.used_categories[p] = [
-                cat for cat in st.session_state.master_scores.index 
-                if str(st.session_state.master_scores.at[cat, p]).strip() != ""
-            ]
 
-# Finally, call the function at the bottom of your script
+# Logic to call it
 if st.session_state.game_active or st.session_state.game_over:
     render_scoreboard()
