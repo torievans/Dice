@@ -141,9 +141,8 @@ if st.session_state.game_active and not st.session_state.game_over:
     current_p = st.session_state.players[st.session_state.current_player_idx]
     st.header(f"👤 {current_p}'s Turn")
     
-    # FIX: Added a server-side check 'if st.session_state.rolls_left > 0' 
-    # to stop rapid clicks from going into negative numbers.
-    if st.button("🎲 ROLL DICE", use_container_width=True, type="primary", disabled=st.session_state.rolls_left <= 0):
+    # 1. STRICT ROLL BUTTON: UI-level disable + Server-side check
+    if st.button("🎲 ROLL DICE", use_container_width=True, type="primary", key="main_roll_btn", disabled=st.session_state.rolls_left <= 0):
         if st.session_state.rolls_left > 0:
             locked = st.session_state.trickA_indices + st.session_state.trickB_indices
             for i in range(10):
@@ -153,7 +152,7 @@ if st.session_state.game_active and not st.session_state.game_over:
             st.session_state.first_roll_made = True
             st.rerun()
 
-    # Visual safety: use max(0, ...) so the user never sees "-1"
+    # Visual safety: Use max(0, ...) so the user never sees "-1"
     st.write(f"**Rolls Left:** {max(0, st.session_state.rolls_left)}")
 
     dice_faces = {0: "?", 1: "⚀", 2: "⚁", 3: "⚂", 4: "⚃", 5: "⚄", 6: "⚅"}
@@ -164,9 +163,12 @@ if st.session_state.game_active and not st.session_state.game_over:
             inA, inB = i in st.session_state.trickA_indices, i in st.session_state.trickB_indices
             is_held = inA or inB
             label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
+            
+            # GIANT DIE: Marked primary (grey) if in A or B
             st.button(label, key=f"v_{i}", disabled=True, type="primary" if is_held else "secondary")
             
             c1, c2 = st.columns(2)
+            # SELECTION BUTTONS (A/B)
             if c1.button("A", key=f"tA_{i}", disabled=not st.session_state.first_roll_made, type="primary" if inA else "secondary"):
                 if inA: st.session_state.trickA_indices.remove(i)
                 else: 
@@ -183,6 +185,7 @@ if st.session_state.game_active and not st.session_state.game_over:
 
     # --- 7. SCORING ---
     st.divider()
+    # Sort dice values for easier logic checks
     tA_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickA_indices])
     tB_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickB_indices])
     
@@ -198,14 +201,17 @@ if st.session_state.game_active and not st.session_state.game_over:
         sel_a = st.selectbox("Assign A:", ["Select Category"] + unused_opts, key="sA") if len(tA_vals) == 5 else None
     with cb:
         st.markdown(f"<div class='bank-header'>Trick B ({len(tB_vals)}/5) &nbsp;&nbsp; {tB_vals if tB_vals else ''}</div>", unsafe_allow_html=True)
+        # Prevent picking the same category for both banks in one turn
         filtered_b = [opt for opt in unused_opts if opt != sel_a]
         sel_b = st.selectbox("Assign B:", ["Select Category"] + filtered_b, key="sB") if len(tB_vals) == 5 else None
 
+    # THE LABEL: This changes text but the 'key' below stays the same to prevent errors
     full_tray = (len(tA_vals) == 5 and len(tB_vals) == 5)
     confirm_label = "✅ Confirm Turn" if full_tray else "Assign all dice to confirm"
     ready = full_tray and sel_a and sel_b and sel_a != "Select Category" and sel_b != "Select Category"
 
-    if st.button(confirm_label, use_container_width=True, disabled=not ready, type="primary"):
+    # THE FIX: Unique key="confirm_turn_btn" prevents DuplicateElementId error
+    if st.button(confirm_label, use_container_width=True, disabled=not ready, type="primary", key="confirm_turn_btn"):
         for s, v in [(sel_a, tA_vals), (sel_b, tB_vals)]:
             display_val = ""
             counts = Counter(v)
@@ -238,6 +244,7 @@ if st.session_state.game_active and not st.session_state.game_over:
             
             st.session_state.used_categories[current_p].append(s)
         
+        # Reset turn state for next player
         st.session_state.dice = [0]*10
         st.session_state.trickA_indices, st.session_state.trickB_indices = [], []
         st.session_state.rolls_left = 3
