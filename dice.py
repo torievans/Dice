@@ -178,28 +178,28 @@ if st.session_state.game_active and not st.session_state.game_over:
                 st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- SIMULATION TOOL (Add this temporarily to test the Winner Screen) ---
-if st.sidebar.button("🚀 Fast-Forward to End"):
-    # Fill Master Scores with random penalties or 👌
-    for p in st.session_state.players:
-        for cat in st.session_state.master_scores.index:
-            if st.session_state.master_scores.at[cat, p] == "":
-                val = random.choice(["👌", "5", "12", "18", "28"])
-                st.session_state.master_scores.at[cat, p] = val
+    # --- SIMULATION TOOL (Updated for Combined Table) ---
+with st.sidebar:
+    if st.button("🚀 Fast-Forward to End"):
+        for p in st.session_state.players:
+            # Loop through every row in the single combined table
+            for cat in st.session_state.master_scores.index:
+                # If the cell is empty, fill it with a random penalty or 👌
+                if st.session_state.master_scores.at[cat, p] == "":
+                    # Special tricks get higher random penalties to look realistic
+                    if cat in ["Low Straight", "High Straight", "5 of a Kind"]:
+                        val = random.choice(["👌", "25", "30", "50"])
+                    else:
+                        val = random.choice(["👌", "5", "12", "18", "28"])
+                    st.session_state.master_scores.at[cat, p] = val
+            
+            # Mark all 10 categories as used
+            st.session_state.used_categories[p] = [
+                "1s", "2s", "3s", "4s", "5s", "6s", 
+                "Full House", "Low Straight", "High Straight", "5 of a Kind"
+            ]
         
-        # Fill Trick Scores
-        for cat in st.session_state.trick_scores.index:
-            if st.session_state.trick_scores.at[cat, p] == "":
-                val = random.choice(["👌", "25", "30", "50"])
-                st.session_state.trick_scores.at[cat, p] = val
-        
-        # Mark all categories as used for all players
-        st.session_state.used_categories[p] = [
-            "1s", "2s", "3s", "4s", "5s", "6s", 
-            "Full House", "Low Straight", "High Straight", "5 of a Kind"
-        ]
-    
-    st.rerun()
+        st.rerun()
 
     # --- 7. SCORING ---
     st.divider()
