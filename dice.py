@@ -178,6 +178,29 @@ if st.session_state.game_active and not st.session_state.game_over:
                 st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
+    # --- SIMULATION TOOL (Add this temporarily to test the Winner Screen) ---
+if st.sidebar.button("🚀 Fast-Forward to End"):
+    # Fill Master Scores with random penalties or 👌
+    for p in st.session_state.players:
+        for cat in st.session_state.master_scores.index:
+            if st.session_state.master_scores.at[cat, p] == "":
+                val = random.choice(["👌", "5", "12", "18", "28"])
+                st.session_state.master_scores.at[cat, p] = val
+        
+        # Fill Trick Scores
+        for cat in st.session_state.trick_scores.index:
+            if st.session_state.trick_scores.at[cat, p] == "":
+                val = random.choice(["👌", "25", "30", "50"])
+                st.session_state.trick_scores.at[cat, p] = val
+        
+        # Mark all categories as used for all players
+        st.session_state.used_categories[p] = [
+            "1s", "2s", "3s", "4s", "5s", "6s", 
+            "Full House", "Low Straight", "High Straight", "5 of a Kind"
+        ]
+    
+    st.rerun()
+
     # --- 7. SCORING ---
     st.divider()
     tA_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickA_indices])
