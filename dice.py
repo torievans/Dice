@@ -44,39 +44,61 @@ stats = load_data()
 # --- 3. THE "TOTAL WHITEOUT" OVERRIDE CSS ---
 st.markdown("""
     <style>
-    /* 1. FORCE THE TOP HEADER TO WHITE */
+    /* 1. TOP HEADER & GLOBAL */
     header[data-testid="stHeader"] {
         background-color: white !important;
         color: black !important;
     }
+    .stApp {
+        background-color: white !important;
+    }
+    h1, h2, h3, h4, p, span, label, li, div[data-testid="stMarkdownContainer"] p {
+        color: black !important;
+    }
 
-    /* 2. FORCE THE SIDEBAR & COLLAPSE BUTTON TO WHITE */
+    /* 2. SIDEBAR FIX */
     [data-testid="stSidebar"] {
         background-color: white !important;
         border-right: 1px solid #eeeeee !important;
     }
-
-    /* Sidebar buttons and arrows */
     div[data-testid="stSidebarCollapseButton"] button, 
     div[data-testid="stSidebarCloseButton"] button {
         background-color: white !important;
         color: black !important;
         border: 1px solid #eeeeee !important;
     }
-
     div[data-testid="stSidebarCollapseButton"] svg, 
     div[data-testid="stSidebarCloseButton"] svg {
         fill: black !important;
         color: black !important;
     }
 
-    /* 3. GLOBAL PAGE STYLES */
-    .stApp {
+    /* 3. MULTISELECT / DROPDOWN (THE "DARK" FIX) */
+    
+    /* Target the dropdown container globally */
+    div[data-baseweb="popover"], div[data-baseweb="menu"], ul[role="listbox"] {
         background-color: white !important;
     }
 
-    /* Force all general text to black */
-    h1, h2, h3, h4, p, span, label, li, div[data-testid="stMarkdownContainer"] p {
+    /* Target the list items inside the dropdown */
+    div[data-baseweb="popover"] li, div[data-baseweb="menu"] li, role["option"] {
+        background-color: white !important;
+        color: black !important;
+    }
+
+    /* Force the text inside the options to be black */
+    div[data-baseweb="popover"] span, div[data-baseweb="menu"] span {
+        color: black !important;
+    }
+
+    /* Hover effect for the list items */
+    div[data-baseweb="popover"] li:hover, div[data-baseweb="menu"] li:hover {
+        background-color: #f0f2f6 !important;
+    }
+
+    /* Selected "tags/chips" in the input box */
+    span[data-baseweb="tag"] {
+        background-color: #f0f2f6 !important;
         color: black !important;
     }
 
@@ -90,12 +112,19 @@ st.markdown("""
     }
     div[data-testid="stColumn"] button p { font-size: 160px !important; color: black !important; }
 
-    /* HELD DICE FUNCTIONALITY */
+    /* HELD DICE */
     div[data-testid="stColumn"] button[kind="primary"] {
         background-color: #f8f9fa !important;
         border: 2px solid #cccccc !important;
     }
     div[data-testid="stColumn"] button[kind="primary"] p { color: #999999 !important; }
+
+    /* 5. DATA TABLE STYLING */
+    .stDataFrame, .stDataEditor {
+        background-color: white !important;
+    }
+    .stDataFrame thead tr th { background-color: #f8f9fa !important; color: black !important; }
+    .stDataFrame tbody tr td { background-color: white !important; color: black !important; }
 
     /* Small A/B Buttons */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
@@ -110,43 +139,6 @@ st.markdown("""
         background-color: #ff4b4b !important;
     }
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] p { color: white !important; }
-
-    /* 5. DATA TABLE STYLING */
-    .stDataFrame, .stDataEditor {
-        background-color: white !important;
-    }
-    .stDataFrame thead tr th { background-color: #f8f9fa !important; color: black !important; }
-    .stDataFrame tbody tr td { background-color: white !important; color: black !important; }
-
-    /* 6. MULTISELECT / DROPDOWN FIX */
-    
-    /* The input box itself */
-    div[data-baseweb="select"] > div {
-        background-color: white !important;
-        color: black !important;
-    }
-
-    /* The list of names that pops down */
-    ul[data-testid="stVirtualDropdown"] {
-        background-color: white !important;
-    }
-
-    /* Individual items in the list */
-    ul[data-testid="stVirtualDropdown"] li {
-        background-color: white !important;
-        color: black !important;
-    }
-
-    /* Hover effect for names in the list */
-    ul[data-testid="stVirtualDropdown"] li:hover {
-        background-color: #f0f2f6 !important;
-    }
-    
-    /* The 'X' and chips for selected players */
-    span[data-baseweb="tag"] {
-        background-color: #f0f2f6 !important;
-        color: black !important;
-    }
     </style>
     """, unsafe_allow_html=True)
 
