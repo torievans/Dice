@@ -141,16 +141,20 @@ if st.session_state.game_active and not st.session_state.game_over:
     current_p = st.session_state.players[st.session_state.current_player_idx]
     st.header(f"👤 {current_p}'s Turn")
     
-    if st.button("🎲 ROLL DICE", use_container_width=True, type="primary", disabled=st.session_state.rolls_left == 0):
-        locked = st.session_state.trickA_indices + st.session_state.trickB_indices
-        for i in range(10):
-            if i not in locked:
-                st.session_state.dice[i] = random.randint(1, 6)
-        st.session_state.rolls_left -= 1
-        st.session_state.first_roll_made = True
-        st.rerun()
+    # FIX: Added a server-side check 'if st.session_state.rolls_left > 0' 
+    # to stop rapid clicks from going into negative numbers.
+    if st.button("🎲 ROLL DICE", use_container_width=True, type="primary", disabled=st.session_state.rolls_left <= 0):
+        if st.session_state.rolls_left > 0:
+            locked = st.session_state.trickA_indices + st.session_state.trickB_indices
+            for i in range(10):
+                if i not in locked:
+                    st.session_state.dice[i] = random.randint(1, 6)
+            st.session_state.rolls_left -= 1
+            st.session_state.first_roll_made = True
+            st.rerun()
 
-    st.write(f"**Rolls Left:** {st.session_state.rolls_left}")
+    # Visual safety: use max(0, ...) so the user never sees "-1"
+    st.write(f"**Rolls Left:** {max(0, st.session_state.rolls_left)}")
 
     dice_faces = {0: "?", 1: "⚀", 2: "⚁", 3: "⚂", 4: "⚃", 5: "⚄", 6: "⚅"}
     st.markdown('<div class="dice-tray">', unsafe_allow_html=True)
@@ -176,6 +180,70 @@ if st.session_state.game_active and not st.session_state.game_over:
                     st.session_state.trickB_indices.append(i)
                 st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
+
+    # --- 7. SCORING ---
+    st.divider()
+    tA_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickA_indices])
+    tB_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickB_indices])
+    
+    def get_opts(player):
+        categories = ["1s", "2s", "3s", "4s", "5s", "6s", "Full House", "Low Straight", "High Straight", "5 of a Kind"]
+        return [c for c in categories if c not in st.session_state.used_categories[player]]
+
+    unused_opts = get_opts(current_p)
+    ca, cb = st.columns(2)
+    
+    with ca:
+        st.markdown(f"<div class='bank-header'>Trick A ({len(tA_vals)}/5) &nbsp;&nbsp; {tA_vals if tA_vals else ''}</div>", unsafe_allow_html=True)
+        sel_a = st.selectbox("Assign A:", ["Select Category"] + unused_opts, key="sA") if len(tA_vals) == 5 else None
+    with cb:
+        st.markdown(f"<div class='bank-header'>Trick B ({len(tB_vals)}/5) &nbsp;&nbsp; {tB_vals if tB_vals else ''}</div>", unsafe_allow_html=True)
+        filtered_b = [opt for opt in unused_opts if opt != sel_a]
+        sel_b = st.selectbox("Assign B:", ["Select Category"] + filtered_b, key="sB") if len(tB_vals) == 5 else None
+
+    full_tray = (len(tA_vals) == 5 and len(tB_vals) == 5)
+    confirm_label = "✅ Confirm Turn" if full_tray else "Assign all dice to confirm"
+    ready = full_tray and sel_a and sel_b and sel_a != "Select Category" and sel_b != "Select Category"
+
+    if st.button(confirm_label, use_container_width=True, disabled=not ready, type="primary"):
+        for s, v in [(sel_a, tA_vals), (sel_b, tB_vals)]:
+            display_val = ""
+            counts = Counter(v)
+            
+            if s in ["Low Straight", "High Straight", "5 of a Kind"]:
+                if s == "Low Straight":
+                    is_correct = (v == [1, 2, 3, 4, 5])
+                    display_val = "👌" if is_correct else "25"
+                elif s == "High Straight":
+                    is_correct = (v == [2, 3, 4, 5, 6])
+                    display_val = "👌" if is_correct else "30"
+                elif s == "5 of a Kind":
+                    if len(counts) == 1:
+                        penalty = (6 - v[0]) * 5
+                        display_val = "👌" if penalty == 0 else str(penalty)
+                    else:
+                        display_val = "30"
+                st.session_state.trick_scores.at[s, current_p] = display_val
+                
+            elif s == "Full House":
+                sorted_counts = sorted(counts.values(), reverse=True)
+                if sorted_counts == [3, 2] or sorted_counts == [5]:
+                    display_val = calculate_score(v, s)
+                else:
+                    display_val = "28"
+                st.session_state.master_scores.at[s, current_p] = display_val
+                
+            else:
+                st.session_state.master_scores.at[s, current_p] = calculate_score(v, s)
+            
+            st.session_state.used_categories[current_p].append(s)
+        
+        st.session_state.dice = [0]*10
+        st.session_state.trickA_indices, st.session_state.trickB_indices = [], []
+        st.session_state.rolls_left = 3
+        st.session_state.first_roll_made = False
+        st.session_state.current_player_idx = (st.session_state.current_player_idx + 1) % len(st.session_state.players)
+        st.rerun()
 
    # --- 7. SCORING ---
     st.divider()
