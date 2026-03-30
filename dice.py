@@ -51,14 +51,8 @@ st.markdown("""
     h1, h2, h3, h4, p, span, label, div[data-testid="stMarkdownContainer"] p {
         color: black !important;
     }
-    .stDataFrame thead tr th {
-        background-color: #f8f9fa !important;
-        color: black !important;
-    }
-    .stDataFrame tbody tr td {
-        background-color: white !important;
-        color: black !important;
-    }
+    .stDataFrame thead tr th { background-color: #f8f9fa !important; color: black !important; }
+    .stDataFrame tbody tr td { background-color: white !important; color: black !important; }
 
     /* MEGA DICE STYLING */
     div[data-testid="stColumn"] > div > div > button {
@@ -68,19 +62,14 @@ st.markdown("""
         border: 2px solid #eeeeee !important;
         border-radius: 15px !important;
     }
-    div[data-testid="stColumn"] button p {
-        font-size: 160px !important;
-        color: black !important;
-    }
+    div[data-testid="stColumn"] button p { font-size: 160px !important; color: black !important; }
 
     /* HELD DICE FUNCTIONALITY */
     div[data-testid="stColumn"] button[kind="primary"] {
         background-color: #f8f9fa !important;
         border: 2px solid #cccccc !important;
     }
-    div[data-testid="stColumn"] button[kind="primary"] p {
-        color: #999999 !important;
-    }
+    div[data-testid="stColumn"] button[kind="primary"] p { color: #999999 !important; }
 
     /* Small A/B Buttons */
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
@@ -89,37 +78,24 @@ st.markdown("""
         border: 1px solid #d1d5db !important;
     }
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button p {
-        font-size: 16px !important;
-        color: black !important;
-        font-weight: bold !important;
+        font-size: 16px !important; color: black !important; font-weight: bold !important;
     }
-    
     div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] {
         background-color: #ff4b4b !important;
     }
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] p {
-        color: white !important;
-    }
+    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] p { color: white !important; }
 
-    button[kind="primary"] p {
-        color: white !important;
-    }
+    button[kind="primary"] p { color: white !important; }
 
     button[key="create_profile_btn"] {
         background-color: #ff4b4b !important;
         border: none !important;
     }
-    button[key="create_profile_btn"] p {
-        color: white !important;
-    }
+    button[key="create_profile_btn"] p { color: white !important; }
 
     .bank-header {
-        background-color: #f8f9fa !important;
-        color: black !important;
-        padding: 10px 20px !important;
-        border-radius: 10px !important;
-        text-align: center !important;
-        border: 1px solid #dee2e6 !important;
+        background-color: #f8f9fa !important; color: black !important; padding: 10px 20px !important;
+        border-radius: 10px !important; text-align: center !important; border: 1px solid #dee2e6 !important;
     }
     .dice-tray { display: flex !important; justify-content: center !important; width: 100% !important; }
     </style>
@@ -135,7 +111,7 @@ if 'rolls_left' not in st.session_state: st.session_state.rolls_left = 3
 if 'current_player_idx' not in st.session_state: st.session_state.current_player_idx = 0
 if 'used_categories' not in st.session_state: st.session_state.used_categories = {}
 
-# --- 5. SETUP & PROFILE MANAGEMENT ---
+# --- 5. SETUP ---
 if not st.session_state.game_active and not st.session_state.game_over:
     st.title("🎲 Double Cameroon")
     col1, col2 = st.columns(2)
@@ -149,7 +125,7 @@ if not st.session_state.game_active and not st.session_state.game_over:
                 st.rerun()
     with col2:
         st.subheader("Start Game")
-        selected = st.multiselect("Select Players for this Match:", list(stats["Players"].keys()))
+        selected = st.multiselect("Select Players:", list(stats["Players"].keys()))
         if st.button("🚀 Start Game", type="primary") and selected:
             st.session_state.players = selected
             st.session_state.current_player_idx = 0
@@ -173,6 +149,8 @@ if st.session_state.game_active and not st.session_state.game_over:
         st.session_state.rolls_left -= 1
         st.session_state.first_roll_made = True
         st.rerun()
+
+    st.write(f"**Rolls Left:** {st.session_state.rolls_left}")
 
     dice_faces = {0: "?", 1: "⚀", 2: "⚁", 3: "⚂", 4: "⚃", 5: "⚄", 6: "⚅"}
     st.markdown('<div class="dice-tray">', unsafe_allow_html=True)
@@ -218,8 +196,15 @@ if st.session_state.game_active and not st.session_state.game_over:
         filtered_b = [opt for opt in unused_opts if opt != sel_a]
         sel_b = st.selectbox("Assign B:", ["Select Category"] + filtered_b, key="sB") if len(tB_vals) == 5 else None
 
-    ready = sel_a and sel_b and sel_a != "Select Category" and sel_b != "Select Category"
-    if st.button("✅ Confirm Turn", use_container_width=True, disabled=not ready, type="primary"):
+    # THE FIX: Only include the ✅ emoji when 10 dice are assigned
+    if len(tA_vals) == 5 and len(tB_vals) == 5:
+        confirm_label = "✅ Confirm Turn"
+    else:
+        confirm_label = "Assign all dice to confirm"
+
+    ready = sel_a and sel_b and sel_a != "Select Category" and sel_b != "Select Category" and len(tA_vals) == 5 and len(tB_vals) == 5
+
+    if st.button(confirm_label, use_container_width=True, disabled=not ready, type="primary"):
         for s, v in [(sel_a, tA_vals), (sel_b, tB_vals)]:
             if s in ["Low Straight", "High Straight", "5 of a Kind"]:
                 is_correct = False
@@ -232,7 +217,6 @@ if st.session_state.game_active and not st.session_state.game_over:
                 st.session_state.master_scores.at[s, current_p] = calculate_score(v, s)
             st.session_state.used_categories[current_p].append(s)
         
-        # Reset turn
         st.session_state.dice, st.session_state.trickA_indices, st.session_state.trickB_indices = [0]*10, [], []
         st.session_state.rolls_left, st.session_state.first_roll_made = 3, False
         st.session_state.current_player_idx = (st.session_state.current_player_idx + 1) % len(st.session_state.players)
