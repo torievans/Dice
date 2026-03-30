@@ -41,63 +41,56 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. RESTORED MEGA DICE CSS ---
+# --- 3. THE "FORCE MEGA" CSS ---
 st.markdown("""
     <style>
-    .stApp, .stDataFrame, div[data-testid="stColumn"], div[data-testid="stHorizontalBlock"] {
-        background-color: white !important;
-        color: black !important;
-    }
-    h1, h2, h3, h4, p, span, label, div[data-testid="stMarkdownContainer"] p {
-        color: black !important;
-    }
-    .stDataFrame thead tr th { background-color: #f8f9fa !important; color: black !important; }
-    .stDataFrame tbody tr td { background-color: white !important; color: black !important; }
-
-    /* MEGA DICE STYLING */
-    div[data-testid="column"] > div > div > button {
+    .stApp { background-color: white !important; }
+    
+    /* TARGET THE DICE BUTTONS BY KEY PREFIX */
+    button[key^="v_"] {
         height: 150px !important;
-        width: 120px !important;
+        width: 100% !important;
+        min-width: 110px !important;
         background-color: white !important;
         border: 2px solid #eeeeee !important;
         border-radius: 15px !important;
+        margin-bottom: 10px !important;
     }
-    div[data-testid="column"] button p { font-size: 160px !important; color: black !important; }
 
-    /* HELD DICE FUNCTIONALITY */
-    div[data-testid="column"] button[kind="primary"] {
+    /* TARGET THE TEXT INSIDE DICE BUTTONS */
+    button[key^="v_"] div[data-testid="stMarkdownContainer"] p {
+        font-size: 110px !important;
+        line-height: 1.2 !important;
+        color: black !important;
+        font-family: serif !important;
+    }
+
+    /* HELD DICE COLORS */
+    button[key^="v_"][kind="primary"] {
         background-color: #f8f9fa !important;
-        border: 2px solid #cccccc !important;
+        border: 2px solid #ff4b4b !important;
     }
-    div[data-testid="column"] button[kind="primary"] p { color: #999999 !important; }
+    button[key^="v_"][kind="primary"] p {
+        color: #ff4b4b !important;
+    }
 
-    /* Small A/B Buttons */
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button {
+    /* SMALL A/B BUTTONS */
+    button[key^="t"] {
         height: 35px !important;
         background-color: #f0f2f6 !important;
         border: 1px solid #d1d5db !important;
     }
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button p {
-        font-size: 16px !important; color: black !important; font-weight: bold !important;
+    button[key^="t"] p {
+        font-size: 16px !important;
+        font-weight: bold !important;
+        color: black !important;
     }
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] {
-        background-color: #ff4b4b !important;
-    }
-    div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] button[kind="primary"] p { color: white !important; }
 
-    button[kind="primary"] p { color: white !important; }
-
-    button[key="create_profile_btn"] {
-        background-color: #ff4b4b !important;
-        border: none !important;
-    }
-    button[key="create_profile_btn"] p { color: white !important; }
-
+    /* OTHER UI ELEMENTS */
     .bank-header {
         background-color: #f8f9fa !important; color: black !important; padding: 10px 20px !important;
         border-radius: 10px !important; text-align: center !important; border: 1px solid #dee2e6 !important;
     }
-    .dice-tray { display: flex !important; justify-content: center !important; width: 100% !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -157,14 +150,16 @@ if st.session_state.game_active and not st.session_state.game_over:
         st.write(f"**Rolls Left:** {max(0, st.session_state.rolls_left)}")
 
         dice_faces = {0: "?", 1: "⚀", 2: "⚁", 3: "⚂", 4: "⚃", 5: "⚄", 6: "⚅"}
-        st.markdown('<div class="dice-tray">', unsafe_allow_html=True)
         d_cols = st.columns(10)
         for i in range(10):
             with d_cols[i]:
                 inA, inB = i in st.session_state.trickA_indices, i in st.session_state.trickB_indices
                 label = dice_faces[st.session_state.dice[i]] if st.session_state.first_roll_made else "?"
-                st.button(label, key=f"v_{i}", disabled=True, type="primary" if (inA or inB) else "secondary")
                 
+                # MEGA DIE
+                st.button(label, key=f"v_{i}", type="primary" if (inA or inB) else "secondary")
+                
+                # SMALL A/B
                 c1, c2 = st.columns(2)
                 if c1.button("A", key=f"tA_{i}", disabled=not st.session_state.first_roll_made, type="primary" if inA else "secondary"):
                     if inA: st.session_state.trickA_indices.remove(i)
@@ -178,7 +173,6 @@ if st.session_state.game_active and not st.session_state.game_over:
                         if inA: st.session_state.trickA_indices.remove(i)
                         st.session_state.trickB_indices.append(i)
                     st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
         st.divider()
         tA_vals = sorted([st.session_state.dice[idx] for idx in st.session_state.trickA_indices])
@@ -191,10 +185,10 @@ if st.session_state.game_active and not st.session_state.game_over:
         unused_opts = get_opts(current_p)
         ca, cb = st.columns(2)
         with ca:
-            st.markdown(f"<div class='bank-header'>Trick A ({len(tA_vals)}/5) &nbsp;&nbsp; {tA_vals if tA_vals else ''}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='bank-header'>Trick A ({len(tA_vals)}/5)</div>", unsafe_allow_html=True)
             sel_a = st.selectbox("Assign A:", ["Select Category"] + unused_opts, key="sA") if len(tA_vals) == 5 else None
         with cb:
-            st.markdown(f"<div class='bank-header'>Trick B ({len(tB_vals)}/5) &nbsp;&nbsp; {tB_vals if tB_vals else ''}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='bank-header'>Trick B ({len(tB_vals)}/5)</div>", unsafe_allow_html=True)
             filtered_b = [opt for opt in unused_opts if opt != sel_a]
             sel_b = st.selectbox("Assign B:", ["Select Category"] + filtered_b, key="sB") if len(tB_vals) == 5 else None
 
@@ -238,7 +232,6 @@ if st.session_state.game_active and not st.session_state.game_over:
 # --- 8 & 9. TOTALS, WINNER, AND SCOREBOARD ---
 if st.session_state.game_active or st.session_state.game_over:
     st.divider()
-    
     totals = {}
     for p in st.session_state.players:
         totals[p] = st.session_state.master_scores[p].apply(lambda x: int(x) if str(x).isdigit() else 0).sum()
@@ -264,7 +257,6 @@ if st.session_state.game_active or st.session_state.game_over:
         t_cols[idx].metric(label=f"{p}'s Score", value=totals[p], delta="⭐ LEADING" if totals[p] == min_score else None)
 
     st.divider()
-    
     is_manual = st.session_state.get("game_mode") == "Score Only"
     edited_df = st.data_editor(st.session_state.master_scores, use_container_width=True, disabled=not is_manual, key="main_table")
     
