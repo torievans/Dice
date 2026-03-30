@@ -41,48 +41,51 @@ def save_data(data):
 
 stats = load_data()
 
-# --- 3. UPDATED MEGA DICE CSS ---
+# --- 3. HIGH-PRIORITY MEGA DICE CSS ---
 st.markdown("""
     <style>
-    .stApp, .stDataFrame, div[data-testid="stColumn"], div[data-testid="stHorizontalBlock"] {
-        background-color: white !important; color: black !important;
-    }
-    
-    /* TARGETING THE MEGA DICE BUTTONS SPECIFICALLY */
-    button[key^="v_"] {
-        height: 150px !important; 
-        width: 120px !important;
-        background-color: white !important; 
-        border: 2px solid #eeeeee !important; 
+    /* 1. Global Page Background Fix */
+    .stApp { background-color: white !important; }
+
+    /* 2. Target the 10 columns for the dice */
+    [data-testid="stHorizontalBlock"] div[data-testid="stColumn"] button[key^="v_"] {
+        height: 150px !important;
+        width: 100% !important;
+        min-width: 100px !important;
+        background-color: white !important;
+        border: 2px solid #eeeeee !important;
         border-radius: 15px !important;
-        margin-bottom: 10px !important;
-    }
-    button[key^="v_"] p { 
-        font-size: 160px !important; 
-        line-height: 150px !important;
-        color: black !important; 
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
 
-    /* HELD DICE STYLING */
-    button[key^="v_"][kind="primary"] {
-        background-color: #f8f9fa !important; 
-        border: 2px solid #cccccc !important;
+    /* 3. Force the Emoji Size */
+    [data-testid="stHorizontalBlock"] div[data-testid="stColumn"] button[key^="v_"] p {
+        font-size: 110px !important; /* Adjusted slightly to fit container better */
+        line-height: 1 !important;
+        color: black !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
-    button[key^="v_"][kind="primary"] p { color: #999999 !important; }
 
-    /* KEEPING A/B BUTTONS SMALL */
-    button[key^="t"] {
-        height: 35px !important; 
-        background-color: #f0f2f6 !important; 
-        border: 1px solid #d1d5db !important;
+    /* 4. Held Dice (Primary) Colors */
+    [data-testid="stHorizontalBlock"] div[data-testid="stColumn"] button[key^="v_"][kind="primary"] {
+        background-color: #f0f2f6 !important;
+        border-color: #ff4b4b !important;
     }
-    button[key^="t"] p { font-size: 16px !important; font-weight: bold !important; }
+    [data-testid="stHorizontalBlock"] div[data-testid="stColumn"] button[key^="v_"][kind="primary"] p {
+        color: #ff4b4b !important;
+    }
 
-    .bank-header {
-        background-color: #f8f9fa !important; color: black !important; padding: 10px 20px !important;
-        border-radius: 10px !important; text-align: center !important; border: 1px solid #dee2e6 !important;
+    /* 5. Keep A/B and other buttons normal size */
+    button:not([key^="v_"]) {
+        height: auto !important;
     }
-    .dice-tray { display: flex !important; justify-content: center !important; gap: 10px; }
+    button[key^="t"] p {
+        font-size: 14px !important;
+        font-weight: bold !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
